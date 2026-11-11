@@ -1,0 +1,40 @@
+# Renders the Galactic view at phone and tablet sizes (test/galactic_layout_test.dart) and uploads the pictures.
+# Runs by hand or on pushes to galactic/* branches; publishes nothing.
+name: Galactic Layout
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['galactic/**']
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.7
+          channel: stable
+          cache: true
+
+      - name: Pakete laden
+        working-directory: app
+        run: flutter pub get
+
+      - name: Galactic pruefen
+        working-directory: app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/galactic test/galactic_layout_test.dart
+
+      - name: Bilder rendern
+        working-directory: app
+        run: flutter test --update-goldens test/galactic_layout_test.dart
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: galactic-layout
+          path: |
+            app/test/goldens/galactic_*.png
+            app/test/failures/**

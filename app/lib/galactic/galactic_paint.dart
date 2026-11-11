@@ -437,14 +437,18 @@ class _Ctx {
 // ---------------------------------------------------------------- Side meter (L/R peaks, 0 … -60 dB)
 
 class SideMeterPainter extends CustomPainter {
-  SideMeterPainter(this.frame, this.pal) : super(repaint: frame);
+  SideMeterPainter(this.frame, this.pal, {this.compact = false}) : super(repaint: frame);
   final ValueNotifier<GFrame> frame;
   final GPalette pal;
+
+  /// Narrow column (landscape): thinner bars, numbers without "dB".
+  final bool compact;
 
   @override
   void paint(Canvas canvas, Size size) {
     final f = frame.value;
-    const barW = 5.0, gap = 2.0, x0 = 3.0, top = 6.0;
+    final barW = compact ? 4.0 : 5.0, gap = compact ? 1.5 : 2.0, x0 = compact ? 2.0 : 3.0;
+    const top = 6.0;
     final bottom = size.height - 14;
     final h = bottom - top;
     double yOf(double db) => top + (-db.clamp(-60.0, 0.0) / 60) * h;
@@ -463,7 +467,7 @@ class SideMeterPainter extends CustomPainter {
     }
     for (final m in const [0, -3, -6, -10, -20, -30, -40, -50, -60]) {
       final y = yOf(m.toDouble());
-      final t = gLabel('$m dB', 7, G.faint);
+      final t = gLabel(compact ? '$m' : '$m dB', 7, G.faint);
       final lx = x0 + 2 * barW + gap;
       canvas.drawLine(Offset(lx + 2, y), Offset(lx + 5, y), _stroke(G.faint, 1));
       t.paint(canvas, Offset(lx + 6, y - t.height / 2));
@@ -472,7 +476,7 @@ class SideMeterPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(SideMeterPainter old) => old.pal != pal;
+  bool shouldRepaint(SideMeterPainter old) => old.pal != pal || old.compact != compact;
 }
 
 // ---------------------------------------------------------------- VU meter

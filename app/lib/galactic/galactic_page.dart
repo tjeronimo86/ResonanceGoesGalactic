@@ -40,6 +40,8 @@ class _GalacticPageState extends ConsumerState<GalacticPage> with SingleTickerPr
   Duration _last = Duration.zero;
   double _slowT = 0;
   Timer? _random;
+  /// Landscape: the equalizer lies over the spectrum while open.
+  bool _eqOverlay = false;
 
   @override
   void initState() {
@@ -246,23 +248,39 @@ class _GalacticPageState extends ConsumerState<GalacticPage> with SingleTickerPr
     );
   }
 
+  /// Landscape: the spectrum gets the large area on the left (the equalizer opens over it), the waveform below it;
+  /// a slim L/R meter; on the right VU + loudness above the queue.
   Widget _landscape(BuildContext context, GText t, GalacticLook look, BoxConstraints c) => Column(
     children: [
       _Header(onSettings: () => _showSettings(context), compact: true),
-      const SizedBox(height: 5),
+      const SizedBox(height: 4),
       Expanded(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              flex: 44,
+              flex: 60,
               child: Column(
                 children: [
                   Expanded(
                     child: _GCard(
                       child: Column(
                         children: [
-                          Expanded(child: _spectrum(context, t, look)),
+                          Expanded(
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                _spectrum(context, t, look),
+                                if (_eqOverlay)
+                                  Align(
+                                    alignment: Alignment.bottomCenter,
+                                    child: SingleChildScrollView(
+                                      child: _EqPanel(overlay: true, onClose: () => setState(() => _eqOverlay = false)),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 3),
                           const _StyleChips(singleRow: true),
                         ],
@@ -270,24 +288,54 @@ class _GalacticPageState extends ConsumerState<GalacticPage> with SingleTickerPr
                     ),
                   ),
                   const SizedBox(height: 5),
-                  SizedBox(height: 62, child: _WaveCard(progress: _progress, slow: _slow)),
-                  const SizedBox(height: 5),
-                  const _EqPanel(),
+                  SizedBox(
+                    height: 64,
+                    child: _WaveCard(
+                      progress: _progress,
+                      slow: _slow,
+                      eqOpen: _eqOverlay,
+                      onEq: () => setState(() => _eqOverlay = !_eqOverlay),
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(width: 5),
-            SizedBox(width: 42, child: _GCard(padding: 2, child: CustomPaint(painter: SideMeterPainter(_frame, _PalScope.of(context)), size: Size.infinite))),
+            SizedBox(
+              width: 34,
+              child: _GCard(padding: 2, child: CustomPaint(painter: SideMeterPainter(_frame, _PalScope.of(context), compact: true), size: Size.infinite)),
+            ),
             const SizedBox(width: 5),
-            const Expanded(flex: 25, child: _QueuePanel()),
-            const SizedBox(width: 5),
-            Expanded(flex: 31, child: _rightColumn(context, t, look, landscape: true)),
+            Expanded(flex: 40, child: _landscapeRight(context, look)),
           ],
         ),
       ),
-      const SizedBox(height: 5),
+      const SizedBox(height: 4),
       _PlayerBar(position: _position, wide: true),
     ],
+  );
+
+  /// Right column in landscape. On phones (little height) the VU card gets a compact loudness block and the
+  /// stereo bars are left out (the L/R meter beside it shows the same levels), so the queue keeps a few rows.
+  Widget _landscapeRight(BuildContext context, GalacticLook look) => LayoutBuilder(
+    builder: (context, c) {
+      final roomy = c.maxHeight >= 330;
+      final vuH = roomy ? c.maxHeight * .5 : (c.maxHeight * .54).clamp(120.0, 230.0);
+      return Column(
+        children: [
+          SizedBox(height: vuH, child: _VuCard(frame: _frame, slow: _slow, vuRef: _vuRef(ref.watch(playerProvider), look), compact: !roomy)),
+          if (roomy) ...[
+            const SizedBox(height: 5),
+            SizedBox(
+              height: 40,
+              child: _GCard(padding: 3, child: CustomPaint(painter: StereoBarsPainter(_frame, _PalScope.of(context)), size: Size.infinite)),
+            ),
+          ],
+          const SizedBox(height: 5),
+          const Expanded(child: _QueuePanel(compact: true)),
+        ],
+      );
+    },
   );
 
   void _showSettings(BuildContext context) {
@@ -639,7 +687,11 @@ List<double> _eqResponse(EqualizerSettings eq, int points) {
 }
 
 class _EqPanel extends ConsumerWidget {
-  const _EqPanel();
+  const _EqPanel({this.overlay = false, this.onClose});
+
+  /// Over the spectrum (landscape): sliders always shown, a close button instead of "Sliders".
+  final bool overlay;
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -650,44 +702,32 @@ class _EqPanel extends ConsumerWidget {
     final look = ref.watch(galacticLookProvider);
     final lookCtrl = ref.read(galacticLookProvider.notifier);
     const labels = ['31', '62', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'];
+    final open = overlay || look.eqOpen;
     return _GCard(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              PopupMenuButton<String>(
-                color: G.card,
-                onSelected: (key) => eqCtrl.set(eq.withPreset(key).copyWith(enabled: true)),
-                itemBuilder: (_) => [
-                  for (final key in equalizerPresets.keys)
-                    PopupMenuItem(value: key, child: _txt(_presetName(key, t), 13, G.text, FontWeight.w500)),
-                ],
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: G.chip, borderRadius: BorderRadius.circular(6), border: Border.all(color: G.chipEdge)),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    _txt(_presetName(eq.preset, t), 10, G.text, FontWeight.w600),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.expand_more, size: 13, color: G.text),
-                  ]),
-                ),
-              ),
+              const _PresetMenu(),
               const SizedBox(width: 5),
               _Pill(eq.enabled ? t.eqOn : t.eqOff, selected: eq.enabled, onTap: () => eqCtrl.set(eq.copyWith(enabled: !eq.enabled))),
               const SizedBox(width: 5),
               _Pill(t.eqReset, onTap: () => eqCtrl.set(eq.withPreset('flat'))),
               const Spacer(),
-              _Pill(t.eqSliders, icon: look.eqOpen ? Icons.expand_less : Icons.expand_more, selected: look.eqOpen,
-                  onTap: () => lookCtrl.set(look.copyWith(eqOpen: !look.eqOpen))),
+              if (overlay)
+                _GIconButton(Icons.close, size: 16, color: G.dim, onTap: onClose)
+              else
+                _Pill(t.eqSliders, icon: look.eqOpen ? Icons.expand_less : Icons.expand_more, selected: look.eqOpen,
+                    onTap: () => lookCtrl.set(look.copyWith(eqOpen: !look.eqOpen))),
             ],
           ),
           const SizedBox(height: 4),
           GestureDetector(
-            onTap: () => lookCtrl.set(look.copyWith(eqOpen: !look.eqOpen)),
+            onTap: overlay ? null : () => lookCtrl.set(look.copyWith(eqOpen: !look.eqOpen)),
             child: SizedBox(height: 26, child: CustomPaint(painter: EqCurvePainter(_eqResponse(eq, 120), pal), size: Size.infinite)),
           ),
-          if (look.eqOpen) ...[
+          if (open) ...[
             const SizedBox(height: 2),
             Row(
               children: [
@@ -715,6 +755,36 @@ class _EqPanel extends ConsumerWidget {
   static String _gainText(double v) {
     if (v == v.roundToDouble()) return v > 0 ? '+${v.toInt()}' : '${v.toInt()}';
     return v > 0 ? '+${v.toStringAsFixed(1)}' : v.toStringAsFixed(1);
+  }
+}
+
+/// The equalizer's preset (Linear, Bass Boost, …) as a small drop-down.
+class _PresetMenu extends ConsumerWidget {
+  const _PresetMenu({this.small = false});
+  final bool small;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = GText.of(context);
+    final eq = ref.watch(equalizerProvider);
+    final eqCtrl = ref.read(equalizerProvider.notifier);
+    return PopupMenuButton<String>(
+      color: G.card,
+      onSelected: (key) => eqCtrl.set(eq.withPreset(key).copyWith(enabled: true)),
+      itemBuilder: (_) => [
+        for (final key in equalizerPresets.keys)
+          PopupMenuItem(value: key, child: _txt(_presetName(key, t), 13, G.text, FontWeight.w500)),
+      ],
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: small ? 6 : 8, vertical: small ? 3 : 4),
+        decoration: BoxDecoration(color: G.chip, borderRadius: BorderRadius.circular(6), border: Border.all(color: G.chipEdge)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          _txt(eq.enabled || !small ? _presetName(eq.preset, t) : t.eqOff, small ? 9 : 10, G.text, FontWeight.w600),
+          const SizedBox(width: 3),
+          Icon(Icons.expand_more, size: small ? 11 : 13, color: G.text),
+        ]),
+      ),
+    );
   }
 }
 
@@ -774,7 +844,10 @@ class _VSliderPainter extends CustomPainter {
 // ---------------------------------------------------------------- Queue
 
 class _QueuePanel extends ConsumerStatefulWidget {
-  const _QueuePanel();
+  const _QueuePanel({this.compact = false});
+
+  /// Landscape: no filter field, slimmer rows, the queue button floats over the list.
+  final bool compact;
 
   @override
   ConsumerState<_QueuePanel> createState() => _QueuePanelState();
@@ -814,15 +887,95 @@ class _QueuePanelState extends ConsumerState<_QueuePanel> {
           (i, track),
     ];
     final total = p.queue.fold<double>(0, (a, b) => a + b.duration);
+    final compact = widget.compact;
+    final extent = compact ? 36.0 : 44.0;
     // Keep the playing song in view.
     if (p.index != null && p.index != _scrolledTo && q.isEmpty) {
       _scrolledTo = p.index;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scroll.hasClients) {
-          final target = (p.index! * 44.0).clamp(0.0, _scroll.position.maxScrollExtent);
+          final target = (p.index! * extent).clamp(0.0, _scroll.position.maxScrollExtent);
           _scroll.animateTo(target, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
         }
       });
+    }
+    final list = ListView.builder(
+      controller: _scroll,
+      itemCount: shown.length,
+      itemExtent: extent,
+      itemBuilder: (_, k) {
+        final (i, track) = shown[k];
+        final current = i == p.index;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 3),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(5),
+            onTap: () => ctrl.jumpTo(i),
+            onLongPress: () => ctrl.removeAt(i),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5),
+              decoration: BoxDecoration(
+                color: current ? pal.accent.withValues(alpha: .16) : null,
+                borderRadius: BorderRadius.circular(5),
+                border: current ? Border.all(color: pal.accent.withValues(alpha: .35)) : null,
+              ),
+              child: Row(
+                children: [
+                  if (current) ...[
+                    Container(width: 2, height: compact ? 18 : 22, color: pal.accent),
+                    const SizedBox(width: 3),
+                    Icon(Icons.play_arrow, size: 10, color: pal.accent),
+                    const SizedBox(width: 3),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _txt(track.title, compact ? 10.5 : 11, current ? pal.accent : G.text, FontWeight.w600),
+                        _txt(
+                          [if (track.trackNo != null) '${track.trackNo}', track.album.name.isNotEmpty ? track.album.name : track.artistCredit]
+                              .join(' · '),
+                          compact ? 8.5 : 9, G.dim, FontWeight.w500,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  _txt(_time(track.duration), 9, G.dim, FontWeight.w500),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (compact) {
+      // Room for the queue button at the top right; the playing song is scrolled to the top.
+      return _GCard(
+        padding: 4,
+        child: Stack(
+          children: [
+            if (p.queue.isEmpty)
+              Padding(padding: const EdgeInsets.fromLTRB(4, 6, 36, 0), child: _txt(t.empty, 10, G.faint, FontWeight.w500, maxLines: 3)),
+            Padding(padding: const EdgeInsets.only(right: 30), child: list),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: Column(
+                children: [
+                  InkResponse(
+                    onTap: () => context.push('/queue'),
+                    radius: 18,
+                    child: SizedBox(width: 28, height: 28, child: Icon(Icons.queue_music, size: 16, color: G.text.withValues(alpha: .85))),
+                  ),
+                  _txt('${p.queue.length}', 8, G.dim, FontWeight.w600),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
     }
     return _GCard(
       child: Column(
@@ -856,59 +1009,7 @@ class _QueuePanelState extends ConsumerState<_QueuePanel> {
           ),
           const SizedBox(height: 5),
           if (p.queue.isEmpty) _txt(t.empty, 10, G.faint, FontWeight.w500, maxLines: 3),
-          Expanded(
-            child: ListView.builder(
-              controller: _scroll,
-              itemCount: shown.length,
-              itemExtent: 44,
-              itemBuilder: (_, k) {
-                final (i, track) = shown[k];
-                final current = i == p.index;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 3),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(5),
-                    onTap: () => ctrl.jumpTo(i),
-                    onLongPress: () => ctrl.removeAt(i),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      decoration: BoxDecoration(
-                        color: current ? pal.accent.withValues(alpha: .16) : null,
-                        borderRadius: BorderRadius.circular(5),
-                        border: current ? Border.all(color: pal.accent.withValues(alpha: .35)) : null,
-                      ),
-                      child: Row(
-                        children: [
-                          if (current) ...[
-                            Container(width: 2, height: 22, color: pal.accent),
-                            const SizedBox(width: 3),
-                            Icon(Icons.play_arrow, size: 10, color: pal.accent),
-                            const SizedBox(width: 3),
-                          ],
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _txt(track.title, 11, current ? pal.accent : G.text, FontWeight.w600),
-                                _txt(
-                                  [if (track.trackNo != null) '${track.trackNo}', track.album.name.isNotEmpty ? track.album.name : track.artistCredit]
-                                      .join(' · '),
-                                  9, G.dim, FontWeight.w500,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          _txt(_time(track.duration), 9, G.dim, FontWeight.w500),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+          Expanded(child: list),
         ],
       ),
     );
@@ -918,9 +1019,10 @@ class _QueuePanelState extends ConsumerState<_QueuePanel> {
 // ---------------------------------------------------------------- VU + loudness
 
 class _VuCard extends ConsumerWidget {
-  const _VuCard({required this.frame, required this.slow, required this.vuRef});
+  const _VuCard({required this.frame, required this.slow, required this.vuRef, this.compact = false});
   final ValueNotifier<GFrame> frame, slow;
   final double vuRef;
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -929,6 +1031,7 @@ class _VuCard extends ConsumerWidget {
     final look = ref.watch(galacticLookProvider);
     final ctrl = ref.read(galacticLookProvider.notifier);
     return _GCard(
+      padding: compact ? 5 : 6,
       child: Column(
         children: [
           Row(
@@ -966,7 +1069,7 @@ class _VuCard extends ConsumerWidget {
           ),
           ValueListenableBuilder<GFrame>(
             valueListenable: slow,
-            builder: (context, f, _) => _Loudness(f: f),
+            builder: (context, f, _) => _Loudness(f: f, compact: compact),
           ),
         ],
       ),
@@ -975,8 +1078,11 @@ class _VuCard extends ConsumerWidget {
 }
 
 class _Loudness extends StatelessWidget {
-  const _Loudness({required this.f});
+  const _Loudness({required this.f, this.compact = false});
   final GFrame f;
+
+  /// One line for the integrated loudness and its bar, one row of six tiles.
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -994,6 +1100,47 @@ class _Loudness extends StatelessWidget {
         ),
       ),
     );
+    if (compact) {
+      Widget small(String label, String value) => Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          decoration: BoxDecoration(color: G.tile, borderRadius: BorderRadius.circular(5), border: Border.all(color: G.cardEdge)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [_txt(label, 7, G.dim, FontWeight.w500), _txt(value, 9.5, G.text, FontWeight.w700)],
+          ),
+        ),
+      );
+      const gap = SizedBox(width: 2);
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              _txt(gFmt(f.integrated), 16, G.text, FontWeight.w700),
+              const SizedBox(width: 3),
+              _txt('LUFS', 9, pal.accent, FontWeight.w700),
+              const SizedBox(width: 8),
+              Expanded(child: SizedBox(height: 18, child: CustomPaint(painter: LoudnessBarPainter(f.integrated, f.momentary, pal), size: Size.infinite))),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Row(children: [
+            small(t.momentary, gFmt(f.momentary)),
+            gap,
+            small(t.shortTerm, gFmt(f.shortTerm)),
+            gap,
+            small('LRA', '${gFmt(f.lra)} LU'),
+            gap,
+            small(t.maxPeak, f.maxPeak.isFinite ? '${gFmt(f.maxPeak)} dB' : '–'),
+            gap,
+            small('PLR', '${gFmt(plr)} LU'),
+            gap,
+            small('Streaming', '${gFmt(vsStreaming)} dB'),
+          ]),
+        ],
+      );
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1050,9 +1197,13 @@ List<double> _envelope(Spectrum s, double seconds) {
 }
 
 class _WaveCard extends ConsumerWidget {
-  const _WaveCard({required this.progress, required this.slow});
+  const _WaveCard({required this.progress, required this.slow, this.eqOpen = false, this.onEq});
   final ValueNotifier<double> progress;
   final ValueNotifier<GFrame> slow;
+
+  /// Landscape: preset and an EQ button at the end of the status line; the equalizer opens over the spectrum.
+  final bool eqOpen;
+  final VoidCallback? onEq;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1086,34 +1237,46 @@ class _WaveCard extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 2),
-          ValueListenableBuilder<GFrame>(
-            valueListenable: slow,
-            builder: (context, f, _) {
-              if (track == null) return Align(alignment: Alignment.centerLeft, child: _txt(t.nothing, 8, G.faint, FontWeight.w500));
-              if (!f.truePeak.isFinite) return Align(alignment: Alignment.centerLeft, child: _txt(t.noWave, 8, G.faint, FontWeight.w500));
-              final ok = f.truePeak <= -1;
-              final col = ok ? G.ok : G.warn;
-              return Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: col.withValues(alpha: .1),
-                      borderRadius: BorderRadius.circular(50),
-                      border: Border.all(color: col),
-                    ),
-                    child: _txt(ok ? t.ok : t.over, 8, col, FontWeight.w600),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: _txt(
-                      '${t.peak} ${gFmt(f.maxPeak)} · TP ${gFmt(f.truePeak)} dBTP (${t.soFar})',
-                      8, G.dim, FontWeight.w500,
-                    ),
-                  ),
-                ],
-              );
-            },
+          Row(
+            children: [
+              Expanded(
+                child: ValueListenableBuilder<GFrame>(
+                  valueListenable: slow,
+                  builder: (context, f, _) {
+                    if (track == null) return Align(alignment: Alignment.centerLeft, child: _txt(t.nothing, 8, G.faint, FontWeight.w500));
+                    if (!f.truePeak.isFinite) return Align(alignment: Alignment.centerLeft, child: _txt(t.noWave, 8, G.faint, FontWeight.w500));
+                    final ok = f.truePeak <= -1;
+                    final col = ok ? G.ok : G.warn;
+                    return Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: col.withValues(alpha: .1),
+                            borderRadius: BorderRadius.circular(50),
+                            border: Border.all(color: col),
+                          ),
+                          child: _txt(ok ? t.ok : t.over, 8, col, FontWeight.w600),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: _txt(
+                            '${t.peak} ${gFmt(f.maxPeak)} · TP ${gFmt(f.truePeak)} dBTP (${t.soFar})',
+                            8, G.dim, FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              if (onEq != null) ...[
+                const SizedBox(width: 6),
+                const _PresetMenu(small: true),
+                const SizedBox(width: 4),
+                _Pill('EQ', icon: Icons.tune, selected: eqOpen, onTap: onEq!),
+              ],
+            ],
           ),
         ],
       ),
@@ -1176,14 +1339,14 @@ class _PlayerBar extends ConsumerWidget {
           onTap: ctrl.togglePlay,
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 6),
-            width: 54,
-            height: 54,
+            width: wide ? 46 : 54,
+            height: wide ? 46 : 54,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [pal.accent2, pal.accent]),
               boxShadow: [BoxShadow(color: pal.accent.withValues(alpha: .5), blurRadius: 14)],
             ),
-            child: Icon(p.playing ? Icons.pause : Icons.play_arrow, color: const Color(0xFF0B0B18), size: 28),
+            child: Icon(p.playing ? Icons.pause : Icons.play_arrow, color: const Color(0xFF0B0B18), size: wide ? 24 : 28),
           ),
         ),
         _GIconButton(Icons.skip_next, size: 26, onTap: ctrl.next),
@@ -1228,7 +1391,7 @@ class _PlayerBar extends ConsumerWidget {
     );
 
     return _GCard(
-      padding: 8,
+      padding: wide ? 5 : 8,
       child: wide
           ? Row(
               children: [
