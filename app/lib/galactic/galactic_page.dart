@@ -723,7 +723,7 @@ class _EqPanel extends ConsumerWidget {
           const SizedBox(height: 4),
           GestureDetector(
             onTap: overlay ? null : () => lookCtrl.set(look.copyWith(eqOpen: !look.eqOpen)),
-            child: SizedBox(height: 26, child: CustomPaint(painter: EqCurvePainter(_eqResponse(eq, 120), pal), size: Size.infinite)),
+            child: SizedBox(height: overlay ? 12 : 26, child: CustomPaint(painter: EqCurvePainter(_eqResponse(eq, 120), pal), size: Size.infinite)),
           ),
           if (open) ...[
             const SizedBox(height: 2),
