@@ -152,7 +152,7 @@ class GalacticAnalyzer {
     final release = 28 * dt;
     void smooth(Float64List out, int offset) {
       for (var b = 0; b < n; b++) {
-        var db = playing ? raw![offset + b].toDouble() : minDb;
+        var db = playing ? raw[offset + b].toDouble() : minDb;
         if (playing && boost != null) db += boost(_freqs[b]);
         final prev = out[b];
         var v = db > prev ? prev + (db - prev) * 0.7 : math.max(db, prev - (playing ? release : 45 * dt));
@@ -180,20 +180,30 @@ class GalacticAnalyzer {
     _avg += (top - _avg) * (1 - math.exp(-dt / 2.5));
 
     // Levels
-    final pkL = playing ? raw![4].toDouble() : -120.0;
-    final pkR = playing ? raw![5].toDouble() : -120.0;
+    final pkL = playing ? raw[4].toDouble() : -120.0;
+    final pkR = playing ? raw[5].toDouble() : -120.0;
     _peakL = math.max(pkL, _peakL - 20 * dt).clamp(-120.0, 6.0);
     _peakR = math.max(pkR, _peakR - 20 * dt).clamp(-120.0, 6.0);
     _holdTL += dt;
     _holdTR += dt;
-    if (_peakL >= _holdL || _holdTL > 1.5) (_holdL, _holdTL) = (_peakL, 0.0);
-    if (_peakR >= _holdR || _holdTR > 1.5) (_holdR, _holdTR) = (_peakR, 0.0);
+    if (_peakL >= _holdL || _holdTL > 1.5) {
+      _holdL = _peakL;
+      _holdTL = 0;
+    }
+    if (_peakR >= _holdR || _holdTR > 1.5) {
+      _holdR = _peakR;
+      _holdTR = 0;
+    }
     _ledTL = pkL > -1 ? 0.8 : _ledTL - dt;
     _ledTR = pkR > -1 ? 0.8 : _ledTR - dt;
-    _rmsL = playing ? raw![6].toDouble() : math.max(-120.0, _rmsL - 30 * dt);
-    _rmsR = playing ? raw![7].toDouble() : math.max(-120.0, _rmsR - 30 * dt);
-    (_vuPosL, _vuVelL) = _spring(_vuPosL, _vuVelL, vuPos(_rmsL - vuRef), dt);
-    (_vuPosR, _vuVelR) = _spring(_vuPosR, _vuVelR, vuPos(_rmsR - vuRef), dt);
+    _rmsL = playing ? raw[6].toDouble() : math.max(-120.0, _rmsL - 30 * dt);
+    _rmsR = playing ? raw[7].toDouble() : math.max(-120.0, _rmsR - 30 * dt);
+    final (pl, vl) = _spring(_vuPosL, _vuVelL, vuPos(_rmsL - vuRef), dt);
+    final (pr, vr) = _spring(_vuPosR, _vuVelR, vuPos(_rmsR - vuRef), dt);
+    _vuPosL = pl;
+    _vuVelL = vl;
+    _vuPosR = pr;
+    _vuVelR = vr;
 
     return GFrame(
       bands: Float64List.fromList(_bands),
