@@ -264,25 +264,23 @@ class _GalacticPageState extends ConsumerState<GalacticPage> with SingleTickerPr
                 children: [
                   Expanded(
                     child: _GCard(
-                      child: Column(
+                      child: Stack(
+                        fit: StackFit.expand,
                         children: [
-                          Expanded(
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                _spectrum(context, t, look),
-                                if (_eqOverlay)
-                                  Align(
-                                    alignment: Alignment.bottomCenter,
-                                    child: SingleChildScrollView(
-                                      child: _EqPanel(overlay: true, onClose: () => setState(() => _eqOverlay = false)),
-                                    ),
-                                  ),
-                              ],
-                            ),
+                          Column(
+                            children: [
+                              Expanded(child: _spectrum(context, t, look)),
+                              const SizedBox(height: 3),
+                              const _StyleChips(singleRow: true),
+                            ],
                           ),
-                          const SizedBox(height: 3),
-                          const _StyleChips(singleRow: true),
+                          if (_eqOverlay)
+                            Align(
+                              alignment: Alignment.bottomCenter,
+                              child: SingleChildScrollView(
+                                child: _EqPanel(overlay: true, onClose: () => setState(() => _eqOverlay = false)),
+                              ),
+                            ),
                         ],
                       ),
                     ),
