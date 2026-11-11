@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'galactic/galactic_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -102,6 +103,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Outside the shell so it opens above the now-playing page and the mini player.
       GoRoute(path: '/queue', builder: (_, _) => const QueuePage()),
       GoRoute(path: '/lyrics', builder: (_, _) => const LyricsPage()),
+      GoRoute(path: '/galactic', builder: (_, _) => const GalacticPage()),
       GoRoute(path: '/changelog', builder: (_, _) => const ChangelogPage()),
       GoRoute(
         path: '/wrapped',

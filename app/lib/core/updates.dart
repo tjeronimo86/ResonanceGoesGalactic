@@ -11,6 +11,29 @@ import 'session.dart';
 /// Desktop builds are attached to the GitHub releases by .github/workflows/desktop-release.yml.
 const githubRepo = 'Sky0405-coder/Resonance';
 
+/// Resonance Galactic (fork tjeronimo86/ResonanceGoesGalactic): its own Android app next to the original.
+/// GitHub Actions builds the APK on every push and publishes it as release `galactic-<build>`.
+const androidApplicationId = 'de.knode.resonance.galactic';
+const galacticRepo = 'tjeronimo86/ResonanceGoesGalactic';
+
+/// The Galactic APK of a release, e.g. `ResonanceGalactic-1007-android.apk`; its build number orders updates.
+AppUpdate galacticUpdateFrom(Map<String, dynamic> release, PackageInfo info) {
+  final tag = release['tag_name'] as String? ?? '';
+  final build = int.tryParse(tag.replaceFirst('galactic-', ''));
+  final url = [
+    for (final a in (release['assets'] as List? ?? const []))
+      if (a is Map && (a['name'] as String? ?? '').endsWith('-android.apk')) a['browser_download_url'] as String?,
+  ].firstOrNull;
+  return AppUpdate(
+    installed: '${info.version} · Build ${info.buildNumber}',
+    installedCode: int.tryParse(info.buildNumber) ?? 0,
+    availableName: url == null || build == null ? null : 'Galactic Build $build',
+    availableCode: url == null ? null : build,
+    downloadUrl: url,
+    releaseUrl: release['html_url'] as String?,
+  );
+}
+
 /// Installed version and, if there is a newer release, that release.
 /// Android: the APK on the Resonance server. Linux/Windows/iOS: the GitHub release's AppImage / installer / .ipa.
 class AppUpdate {
@@ -81,13 +104,13 @@ final appUpdateProvider = FutureProvider<AppUpdate?>((ref) async {
     return desktopUpdateFrom(response.data ?? const {}, info, defaultTargetPlatform);
   }
   if (defaultTargetPlatform != TargetPlatform.android) return null;
-  final release = await api.androidRelease();
-  return AppUpdate(
-    installed: info.version,
-    installedCode: int.tryParse(info.buildNumber) ?? 0,
-    availableName: release?.versionName,
-    availableCode: release?.versionCode,
+  // Galactic: updates come from the fork's GitHub releases, not from the Resonance server (that APK is the
+  // original app with another signature).
+  final galactic = await Dio().get<Map<String, dynamic>>(
+    'https://api.github.com/repos/$galacticRepo/releases/latest',
+    options: Options(headers: {'Accept': 'application/vnd.github+json'}),
   );
+  return galacticUpdateFrom(galactic.data ?? const {}, info);
 });
 
 /// Path of the running AppImage (set by the AppImage runtime), null for other Linux installs.

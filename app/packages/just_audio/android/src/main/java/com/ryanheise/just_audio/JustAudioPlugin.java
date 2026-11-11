@@ -17,6 +17,7 @@ import io.flutter.plugin.common.MethodChannel.Result;
 public class JustAudioPlugin implements FlutterPlugin {
     private MethodChannel channel;
     private MethodChannel mixFxChannel;
+    private MethodChannel galacticChannel;
     private MainMethodCallHandler methodCallHandler;
 
     @Override
@@ -29,6 +30,8 @@ public class JustAudioPlugin implements FlutterPlugin {
         channel.setMethodCallHandler(methodCallHandler);
         mixFxChannel = new MethodChannel(messenger, "com.ryanheise.just_audio.mixfx");
         mixFxChannel.setMethodCallHandler(new MixFx());
+        galacticChannel = new MethodChannel(messenger, "com.ryanheise.just_audio.galactic");
+        galacticChannel.setMethodCallHandler(new Galactic());
         @SuppressWarnings("deprecation")
         FlutterEngine engine = binding.getFlutterEngine();
         engine.addEngineLifecycleListener(new EngineLifecycleListener() {
@@ -50,5 +53,6 @@ public class JustAudioPlugin implements FlutterPlugin {
 
         channel.setMethodCallHandler(null);
         mixFxChannel.setMethodCallHandler(null);
+        galacticChannel.setMethodCallHandler(null);
     }
 }

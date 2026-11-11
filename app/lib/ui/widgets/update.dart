@@ -32,7 +32,8 @@ Future<void> installAppUpdate(BuildContext context, WidgetRef ref) async {
     );
     return;
   }
-  final url = ref.read(apiProvider).androidApkUrl;
+  // Galactic: the APK of the fork's latest GitHub release.
+  final url = ref.read(appUpdateProvider).value?.downloadUrl ?? ref.read(apiProvider).androidApkUrl;
   await showDialog<void>(
     context: context,
     barrierDismissible: false,

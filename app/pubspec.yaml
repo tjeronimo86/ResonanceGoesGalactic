@@ -93,6 +93,19 @@ flutter:
 
   assets:
     - assets/changelog.json
+    - assets/galactic_changelog.json
+
+  # Galactic view
+  fonts:
+    - family: ChakraPetch
+      fonts:
+        - asset: assets/fonts/chakra_400.ttf
+        - asset: assets/fonts/chakra_500.ttf
+          weight: 500
+        - asset: assets/fonts/chakra_600.ttf
+          weight: 600
+        - asset: assets/fonts/chakra_700.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

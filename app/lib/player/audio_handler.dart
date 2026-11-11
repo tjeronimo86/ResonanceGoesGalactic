@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../core/updates.dart';
 import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -93,7 +94,7 @@ class ResonanceAudioHandler extends BaseAudioHandler with QueueHandler, SeekHand
     }
     // Android Auto cannot read the app's private files; the app's CoverProvider serves downloaded covers.
     return defaultTargetPlatform == TargetPlatform.android
-        ? Uri.parse('content://de.knode.resonance.covers/$albumId')
+        ? Uri.parse('content://$androidApplicationId.covers/$albumId')
         : Uri.file(file);
   }
 

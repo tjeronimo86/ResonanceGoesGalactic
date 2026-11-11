@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import '../../l10n/l10n.dart';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -221,6 +222,12 @@ class _TrackControls extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             const SleepTimerButton(),
+            if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+              IconButton(
+                tooltip: 'Galactic',
+                icon: const Icon(Icons.graphic_eq),
+                onPressed: () => context.push('/galactic'),
+              ),
             IconButton(
               tooltip: context.l10n.lyricsTitle,
               icon: const Icon(Icons.lyrics_outlined),

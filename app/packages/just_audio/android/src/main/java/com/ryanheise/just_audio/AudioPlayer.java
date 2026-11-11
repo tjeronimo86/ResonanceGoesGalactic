@@ -784,6 +784,8 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
             // Resonance: the mix effects run in the audio sink, before the speed change.
             final MixFxProcessor mixFx = new MixFxProcessor();
             MixFx.register(playerId, mixFx);
+            // Galactic view: copies what is heard (after the mix effects) for the live analysis.
+            final GalacticTap galacticTap = new GalacticTap(mixFx);
             final DefaultRenderersFactory mixRenderers = new DefaultRenderersFactory(context) {
                 @Override
                 protected AudioSink buildAudioSink(Context context, boolean enableFloatOutput,
@@ -791,7 +793,7 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
                     AudioSink sink = new DefaultAudioSink.Builder(context)
                         .setEnableFloatOutput(enableFloatOutput)
                         .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                        .setAudioProcessors(new AudioProcessor[] {mixFx})
+                        .setAudioProcessors(new AudioProcessor[] {mixFx, galacticTap})
                         .build();
                     return new MixFxSink(sink, mixFx);
                 }
@@ -812,6 +814,7 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
                 builder.setLivePlaybackSpeedControl(livePlaybackSpeedControl);
             }
             player = builder.build();
+            Galactic.register(playerId, galacticTap, player);
             player.setTrackSelectionParameters(
                 player.getTrackSelectionParameters()
                     .buildUpon()
@@ -1078,6 +1081,7 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
         clearAudioEffects();
         if (player != null) {
             MixFx.unregister(playerId);
+            Galactic.unregister(playerId);
             player.release();
             player = null;
             processingState = ProcessingState.idle;

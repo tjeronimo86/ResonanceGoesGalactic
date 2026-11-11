@@ -26,7 +26,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "de.knode.resonance"
+        applicationId = "de.knode.resonance.galactic"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -40,6 +40,16 @@ android {
     }
 
     signingConfigs {
+        // Resonance Galactic: GitHub Actions writes the key from a repository secret to galactic.keystore,
+        // so every CI build installs over the last one. Local builds without it use the debug key.
+        if (file("galactic.keystore").exists()) {
+            create("galactic") {
+                storeFile = file("galactic.keystore")
+                storePassword = System.getenv("GALACTIC_KEY_PASSWORD") ?: "android"
+                keyAlias = "galactic"
+                keyPassword = System.getenv("GALACTIC_KEY_PASSWORD") ?: "android"
+            }
+        }
         if (keyProperties.isNotEmpty()) {
             create("release") {
                 storeFile = file(keyProperties.getProperty("storeFile"))
@@ -52,7 +62,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.findByName("galactic") ?: signingConfigs.getByName("debug")
         }
     }
 }

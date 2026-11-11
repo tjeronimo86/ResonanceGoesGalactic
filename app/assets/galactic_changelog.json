@@ -1,0 +1,23 @@
+[
+  {
+    "title": "Galactic 1 – 11. November 2026",
+    "de": [
+      "Neue Galactic-Ansicht (Android): über das Equalizer-Symbol auf der Wiedergabe-Seite",
+      "Spektrum-Analyzer mit 10 Stilen (Fab2M, Cosmic, Chrome, Vinyl, CRBRVS, Synth, Aurora, Oktave, LED, Spiegel), Zufallsmodus und den Schaltern Kurve, Stereo, Kontur und Cover; über das Spektrum wischen wechselt den Stil",
+      "Live gemessen, was gerade zu hören ist – auch bei AutoMix und Crossfade: analoge VU-Meter, L/R-Pegel, Stereo-Balken, Lautheit nach EBU R128 (Integriert, Momentan, Kurzzeit, LRA, PLR, vs Streaming) und True Peak",
+      "Wellenform des ganzen Songs vom Server, zum Spulen antippen oder ziehen",
+      "Der Resonance-Equalizer direkt in der Ansicht, mit Kurve und einklappbaren Reglern",
+      "Warteschlange mit Filter, große Steuerknöpfe unten, Hoch- und Querformat",
+      "Eigene App „Resonance Galactic“ neben dem Original; Updates kommen aus github.com/tjeronimo86/ResonanceGoesGalactic"
+    ],
+    "en": [
+      "New Galactic view (Android): via the equalizer icon on the now-playing page",
+      "Spectrum analyzer with 10 styles (Fab2M, Cosmic, Chrome, Vinyl, CRBRVS, Synth, Aurora, Octave, LED, Mirror), random mode and the curve, stereo, outline and cover toggles; swipe across the spectrum to change the style",
+      "Measured live from what you hear – AutoMix and crossfades included: analog VU meters, L/R levels, stereo bars, EBU R128 loudness (integrated, momentary, short term, LRA, PLR, vs streaming) and true peak",
+      "Whole-song waveform from the server, tap or drag to seek",
+      "Resonance's equalizer right in the view, with its curve and foldable sliders",
+      "Queue with filter, large controls at the bottom, portrait and landscape",
+      "Its own app \"Resonance Galactic\" next to the original; updates come from github.com/tjeronimo86/ResonanceGoesGalactic"
+    ]
+  }
+]

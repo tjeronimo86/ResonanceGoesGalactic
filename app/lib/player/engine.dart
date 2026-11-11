@@ -836,6 +836,9 @@ class PlaybackEngine {
 
   late final List<AudioPlayer> _players;
 
+  /// Native ids of both players (Galactic view: measures the one that is heard).
+  List<String> get playerIds => [for (final p in _players) ?p.playerId];
+
   static final _android = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   /// Whether the Android players have the mix processor (unknown until the first lanes transition).

@@ -12,7 +12,7 @@
     <!-- Song ringtones: setting the default ringtone/notification/alarm sound (granted by the user in settings). -->
     <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions"/>
     <application
-        android:label="Resonance"
+        android:label="Resonance Galactic"
         android:banner="@drawable/tv_banner"
         android:usesCleartextTraffic="true"
         android:name="${applicationName}"

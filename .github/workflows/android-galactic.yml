@@ -1,0 +1,94 @@
+# Resonance Galactic: builds the Android APK on every push to main and publishes it as release `galactic-<build>`.
+# The app finds these releases itself (Settings → update) and installs over the previous build (same key).
+name: Android Galactic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/android-galactic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-galactic
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.47.7
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Pakete laden
+        working-directory: app
+        run: flutter pub get
+
+      # Zeigt Fehler im Galactic-Code frueh und mit Datei und Zeile
+      - name: Galactic pruefen
+        working-directory: app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/galactic lib/core/updates.dart lib/player/engine.dart lib/router.dart lib/ui/pages/now_playing_page.dart lib/ui/widgets/update.dart lib/player/audio_handler.dart
+
+      # Signierschluessel aus den Repository-Secrets (Settings -> Secrets and variables -> Actions):
+      # GALACTIC_KEYSTORE_B64 (Keystore als Base64) und GALACTIC_KEY_PASSWORD. Ohne sie wird mit dem
+      # Debug-Schluessel signiert; dann laesst sich ein Build nicht ueber einen anders signierten installieren.
+      - name: Signierschluessel
+        env:
+          KEYSTORE: ${{ secrets.GALACTIC_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "$KEYSTORE" | base64 -d > app/android/app/galactic.keystore
+          else
+            echo "::warning::Kein Secret GALACTIC_KEYSTORE_B64 - Build wird mit dem Debug-Schluessel signiert."
+          fi
+
+      - name: APK bauen
+        working-directory: app
+        env:
+          GALACTIC_KEY_PASSWORD: ${{ secrets.GALACTIC_KEY_PASSWORD }}
+        run: |
+          BUILD=$((1000 + ${{ github.run_number }}))
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          flutter build apk --release --build-number=$BUILD
+
+      - name: APK und Update-Verlauf bereitstellen
+        run: |
+          mkdir -p out
+          cp app/build/app/outputs/flutter-apk/app-release.apk "out/ResonanceGalactic-${BUILD}-android.apk"
+          python3 - <<'PY'
+          import json, pathlib
+          entry = json.loads(pathlib.Path('app/assets/galactic_changelog.json').read_text(encoding='utf-8'))[0]
+          notes = ['### Deutsch', *[f'- {x}' for x in entry['de']], '', '### English', *[f'- {x}' for x in entry['en']]]
+          pathlib.Path('out/notes.md').write_text('\n'.join(notes) + '\n', encoding='utf-8')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resonance-galactic-apk
+          path: out/*.apk
+
+      - name: Release veroeffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: galactic-${{ env.BUILD }}
+          name: Resonance Galactic (Build ${{ env.BUILD }})
+          body_path: out/notes.md
+          make_latest: true
+          files: out/*.apk
