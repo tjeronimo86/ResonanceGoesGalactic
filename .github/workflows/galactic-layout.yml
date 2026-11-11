@@ -7,6 +7,9 @@ on:
   push:
     branches: ['galactic/**']
 
+permissions:
+  contents: write
+
 jobs:
   shots:
     runs-on: ubuntu-latest
@@ -31,10 +34,17 @@ jobs:
         working-directory: app
         run: flutter test --update-goldens test/galactic_layout_test.dart
 
-      - uses: actions/upload-artifact@v4
+      # Bilder in den Branch galactic-shots legen (zum Ansehen ohne Artefakt-Download)
+      - name: Bilder ablegen
         if: always()
-        with:
-          name: galactic-layout
-          path: |
-            app/test/goldens/galactic_*.png
-            app/test/failures/**
+        run: |
+          mkdir -p /tmp/shots
+          cp app/test/goldens/galactic_*.png /tmp/shots/ 2>/dev/null || true
+          cp -r app/test/failures /tmp/shots/ 2>/dev/null || true
+          cd /tmp/shots
+          git init -q -b galactic-shots
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Layout ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" galactic-shots

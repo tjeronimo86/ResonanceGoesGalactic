@@ -95,6 +95,11 @@ void main() {
 
   setUpAll(() async {
     directory = await Directory.systemTemp.createTemp('galactic-layout-');
+    TestWidgetsFlutterBinding.ensureInitialized();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('plugins.flutter.io/path_provider'),
+      (call) async => directory.path,
+    );
     await _loadFont('ChakraPetch', [for (final w in [400, 500, 600, 700]) 'assets/fonts/chakra_$w.ttf']);
     final root = Platform.environment['FLUTTER_ROOT'];
     if (root != null) {
