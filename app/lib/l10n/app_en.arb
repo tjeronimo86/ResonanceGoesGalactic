@@ -817,7 +817,7 @@
   "settingsVocalSwap": "Vocal swap",
   "settingsVocalSwapHint": "The next song comes in without its vocals, its beat running under the current song's singing (PC only, needs the server's song analysis)",
   "settingsKeyShift": "Match keys",
-  "settingsKeyShiftHint": "AutoMix shifts the next song by up to two semitones when the keys clash",
+  "settingsKeyShiftHint": "AutoMix shifts the next song by up to two semitones when the keys clash – the whole song then sounds higher or lower than the original",
   "equalizerTitle": "Equalizer",
   "equalizerOff": "Off",
   "equalizerPresetFlat": "Flat",

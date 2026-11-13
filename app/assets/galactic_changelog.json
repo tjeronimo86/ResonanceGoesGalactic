@@ -1,5 +1,18 @@
 [
   {
+    "title": "Galactic 3 – 13. November 2026",
+    "de": [
+      "AutoMix: Der nächste Song wird nicht mehr in der Tonhöhe verschoben – „Tonart angleichen“ ist jetzt standardmäßig aus (es verstimmt den ganzen Song) und lässt sich in den Einstellungen wieder einschalten",
+      "AutoMix: Nach dem Übergang kehrt der Song in 8 Sekunden zu seinem eigenen Tempo zurück und bleibt nie auf dem angeglichenen Tempo stehen",
+      "AutoMix gleicht nur noch Tempi bis 8 % an (jeder Song höchstens etwa 4 %); weiter auseinander liegende Songs werden ausgefiltert statt hörbar schneller oder langsamer gemacht"
+    ],
+    "en": [
+      "AutoMix: the next song is no longer shifted in pitch – “Match keys” is now off by default (it detunes the whole song) and can be switched back on in the settings",
+      "AutoMix: after the transition the song returns to its own tempo within 8 seconds and never stays at the matched tempo",
+      "AutoMix only matches tempos up to 8 % apart (each song moves at most about 4 %); songs further apart are filtered out instead of audibly sped up or slowed down"
+    ]
+  },
+  {
     "title": "Galactic 2 – 11. November 2026",
     "de": [
       "Querformat neu aufgeteilt: das Spektrum bekommt links die große Fläche, die Wellenform liegt schmal darunter",

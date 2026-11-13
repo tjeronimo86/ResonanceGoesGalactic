@@ -170,8 +170,9 @@ class AutomixPlan {
 Duration _seconds(double s) => Duration(microseconds: (s * 1e6).round());
 
 /// Tempo differences up to this are matched (time-stretched without changing the pitch); above
-/// [automixShareTempoChange] both songs move halfway, so neither changes by more than about 8 %.
-const automixMaxTempoChange = 0.16;
+/// [automixShareTempoChange] both songs move halfway, so neither changes by more than about 4 % – like a DJ's pitch
+/// fader at ±8 %, larger changes are heard as a song running too fast or too slow. Songs further apart filter out.
+const automixMaxTempoChange = 0.08;
 const automixShareTempoChange = 0.04;
 
 /// The song without the bass loses only its low end (bands up to [automixBassCutoff] Hz drop by
@@ -230,10 +231,13 @@ const automixMinTailBeats = 4;
 const automixMaxTailBeats = 8;
 const automixMinSeconds = 6.0;
 
+/// After a beat-matched transition the new song returns to its own tempo within this time.
+const automixTempoReturn = Duration(seconds: 8);
+
 /// How far the current song thins out after the swap (desktop): its high-pass rises to about 600 Hz.
 const automixTailSweep = 0.75;
 
-/// Tempos within 16 % (also at double or half time) are matched and blended; tempos further apart filter the current
+/// Tempos within 8 % (also at double or half time) are matched and blended; tempos further apart filter the current
 /// song out. The blend starts at the analyzed mix-out point, earlier by whole bars when the outro is shorter than
 /// the blend (never in the first half of the song). [minSeconds] (the crossfade setting) asks for up to 30 seconds.
 ///
@@ -854,8 +858,9 @@ class PlaybackEngine {
   /// goes on without them.
   final filtersUnavailable = ValueNotifier(false);
 
-  /// A next song in a clashing key is pitched by up to two semitones to fit (AutoMix; desktop and Android).
-  bool keyShift = true;
+  /// A next song in a clashing key is pitched by up to two semitones to fit (AutoMix; desktop and Android). Off by
+  /// default: the pitch stays for the whole song, which then sounds higher or lower than the original.
+  bool keyShift = false;
 
   /// Desktop vocal swap: the next song comes in without its voice (its instrumental start, separated by the server)
   /// until the bass swaps, so its beat runs under the current song's singing.
@@ -1048,6 +1053,9 @@ class PlaybackEngine {
 
   void _checkFade() {
     if (_disposed || _editing || _fade != null || _finishingFade != null) return;
+    // Outside a transition (and its tempo return) every song plays at the chosen speed: a matched tempo left over
+    // from AutoMix (a ramp cut short) would make the whole song sound too fast or too slow.
+    if (_speedRamp?.isActive != true && (_active.speed - _speed).abs() > 1e-4) _active.setSpeed(_speed).ignore();
     // A song with its instrumental start mixed in that ends without a transition: back to the plain song before
     // the player moves on (the next song has no extra track).
     final length = duration;
@@ -1372,7 +1380,7 @@ class PlaybackEngine {
       _activeIndex = 1 - _activeIndex;
       _fade = null;
       if (fade.plan?.changesTempo ?? false) {
-        _rampSpeed(fade.incoming, _speed * fade.plan!.speed, _speed, const Duration(seconds: 16));
+        _rampSpeed(fade.incoming, _speed * fade.plan!.speed, _speed, automixTempoReturn);
       }
     } finally {
       _editing = false;

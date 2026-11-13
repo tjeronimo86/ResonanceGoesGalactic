@@ -1409,7 +1409,7 @@
   "settingsVocalSwap": "Gesangs-Tausch",
   "settingsVocalSwapHint": "Der nächste Song kommt ohne Gesang herein, sein Beat läuft unter dem Gesang des aktuellen Songs (nur PC, braucht die Song-Analyse auf dem Server)",
   "settingsKeyShift": "Tonart angleichen",
-  "settingsKeyShiftHint": "AutoMix verschiebt den nächsten Song um bis zu zwei Halbtöne, wenn die Tonarten nicht zusammenpassen",
+  "settingsKeyShiftHint": "AutoMix verschiebt den nächsten Song um bis zu zwei Halbtöne, wenn die Tonarten nicht zusammenpassen – der ganze Song klingt dann höher oder tiefer als das Original",
   "equalizerTitle": "Equalizer",
   "equalizerOff": "Aus",
   "equalizerPresetFlat": "Flach",

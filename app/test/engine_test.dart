@@ -384,21 +384,21 @@ void main() {
       expect(plan.duration, secs(16 * beat));
       expect(plan.bassSwap.inMicroseconds / 1e6, closeTo(8 * beat, 1e-3));
       expect(automixPlan(points(mixOut: 100, end: 110), points())!.bassSwap, const Duration(seconds: 5));
-      // Up to 16 % tempo difference is matched.
-      expect(automixPlan(points(bpm: 115), points(bpm: 100))!.beatMatched, isTrue);
-      expect(automixPlan(points(bpm: 120), points(bpm: 100))!.beatMatched, isFalse);
+      // Up to 8 % tempo difference is matched.
+      expect(automixPlan(points(bpm: 107), points(bpm: 100))!.beatMatched, isTrue);
+      expect(automixPlan(points(bpm: 110), points(bpm: 100))!.beatMatched, isFalse);
     });
 
     test('larger tempo differences meet in the middle', () {
       final small = automixPlan(points(bpm: 103), points(bpm: 100))!;
       expect(small.outgoingSpeed, 1);
       expect(small.speed, closeTo(1.03, 1e-9));
-      final large = automixPlan(points(bpm: 112), points(bpm: 100))!;
-      // Both move about 5.8 %, and the incoming song still follows the outgoing beat.
-      expect(large.outgoingSpeed, closeTo(1 / sqrt(1.12), 1e-9));
-      expect(large.speed, closeTo(sqrt(1.12), 1e-9));
-      expect(large.ratio, closeTo(1.12, 1e-9));
-      expect(112 * large.outgoingSpeed, closeTo(100 * large.speed, 1e-9));
+      final large = automixPlan(points(bpm: 107), points(bpm: 100))!;
+      // Both move about 3.4 %, and the incoming song still follows the outgoing beat.
+      expect(large.outgoingSpeed, closeTo(1 / sqrt(1.07), 1e-9));
+      expect(large.speed, closeTo(sqrt(1.07), 1e-9));
+      expect(large.ratio, closeTo(1.07, 1e-9));
+      expect(107 * large.outgoingSpeed, closeTo(100 * large.speed, 1e-9));
     });
 
     test('equal tempos start on the beat without a speed change', () {
@@ -419,7 +419,7 @@ void main() {
       expect(faster.outgoingSpeed, 1);
       expect(faster.speed, closeTo(140 / 130, 1e-9));
       // Without the octave the tempos still meet in the middle, toward the next song.
-      final slower = automixPlan(points(bpm: 112), points(bpm: 100))!;
+      final slower = automixPlan(points(bpm: 107), points(bpm: 100))!;
       expect(slower.outgoingSpeed, lessThan(1));
     });
 

@@ -2412,7 +2412,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsKeyShiftHint =>
-      'AutoMix verschiebt den nächsten Song um bis zu zwei Halbtöne, wenn die Tonarten nicht zusammenpassen';
+      'AutoMix verschiebt den nächsten Song um bis zu zwei Halbtöne, wenn die Tonarten nicht zusammenpassen – der ganze Song klingt dann höher oder tiefer als das Original';
 
   @override
   String get equalizerTitle => 'Equalizer';

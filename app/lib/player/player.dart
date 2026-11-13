@@ -242,7 +242,8 @@ class PlayerController extends Notifier<PlayerView> {
     engine.crossfadeSeconds = (prefs.getInt('crossfade_seconds') ?? 0).clamp(0, 20);
     engine.targetVolumeForIndex = (index) => userVolume.value * gainForTrack(state.queue[index]);
     engine.automix = prefs.getBool('automix') ?? false;
-    engine.keyShift = prefs.getBool('automix_key_shift') ?? true;
+    // New key (off by default): the old default pitched whole songs, which sounded out of tune.
+    engine.keyShift = prefs.getBool('automix_key_shift_v2') ?? false;
     engine.vocalSwap = prefs.getBool('automix_vocal_swap') ?? true;
     engine.requestStemForIndex = (index) {
       if (index < state.queue.length) _requestStem(state.queue[index].id).ignore();
@@ -1565,7 +1566,7 @@ class PlayerController extends Notifier<PlayerView> {
 
   /// Desktop: pitch a next song in a clashing key to fit (AutoMix).
   void setKeyShift(bool enabled) {
-    ref.read(prefsProvider).setBool('automix_key_shift', enabled);
+    ref.read(prefsProvider).setBool('automix_key_shift_v2', enabled);
     engine.keyShift = enabled;
   }
 

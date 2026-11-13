@@ -30,6 +30,10 @@ jobs:
         working-directory: app
         run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/galactic test/galactic_layout_test.dart
 
+      - name: AutoMix-Tests
+        working-directory: app
+        run: flutter test test/engine_test.dart test/mix_lanes_test.dart
+
       - name: Bilder rendern
         working-directory: app
         run: flutter test --update-goldens test/galactic_layout_test.dart
