@@ -53,6 +53,7 @@ from app.services import (
     lyrics,
     mixpoints,
     podcast_ads,
+    search,
     upgrades,
     vocals,
 )
@@ -88,6 +89,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await mixpoints.start()
     await vocals.start()
     await lyrics.start()
+    await search.start()
     await podcasts_service.start()
     await podcast_ads.start()
     await duplicates.start()
@@ -100,6 +102,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await mixpoints.stop()
         await vocals.stop()
         await lyrics.stop()
+        await search.stop()
         await podcasts_service.stop()
         await podcast_ads.stop()
         await artist_info.stop()

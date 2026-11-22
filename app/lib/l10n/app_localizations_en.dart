@@ -116,6 +116,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get searchInLyrics => 'In lyrics';
+
+  @override
+  String searchLyricsLine(String line) {
+    return '“$line”';
+  }
+
+  @override
   String get tvKeyboardSpace => 'Space';
 
   @override
@@ -302,15 +310,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playerRemoveFromQueue => 'Remove from queue';
 
   @override
+  String get playerMoveInQueue => 'Move';
+
+  @override
   String get playerNextInQueue => 'Next in queue';
 
   @override
   String get playerLater => 'Later';
-
-  @override
-  String playerRemovedTrack(String title) {
-    return 'Removed “$title” from queue';
-  }
 
   @override
   String get settingsAccount => 'Account';
@@ -985,11 +991,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playerAddToQueue => 'Add to queue';
 
   @override
-  String playerQueuedTrack(String title) {
-    return '“$title” added to queue';
-  }
-
-  @override
   String get playerGoToAlbum => 'Go to album';
 
   @override
@@ -997,11 +998,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editorCorrectMetadata => 'Edit metadata';
-
-  @override
-  String libraryAddedToPlaylist(String name) {
-    return 'Added to “$name”';
-  }
 
   @override
   String get commonSave => 'Save';
@@ -2367,12 +2363,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsVisualizerReflectionHint => 'Mirror the cover and visualizer';
 
   @override
-  String get visualizerPeaksOn => 'Peak dots on';
-
-  @override
-  String get visualizerPeaksOff => 'Peak dots off';
-
-  @override
   String get settingsCoverflow => 'Coverflow';
 
   @override
@@ -3496,11 +3486,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playlistAdded => 'Added';
-
-  @override
-  String playlistAddedTo(Object title) {
-    return 'Added “$title”';
-  }
 
   @override
   String get transitionCustom => 'Custom';

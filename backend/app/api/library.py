@@ -7,7 +7,7 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, Response, StreamingResponse
-from sqlalchemy import ColumnElement, Select, func, or_, select
+from sqlalchemy import func, or_, select
 
 from app.api import diagnostics
 from app.api.catalog import _track as catalog_track
@@ -23,7 +23,6 @@ from app.models import (
     Track,
     TrackMixPoints,
 )
-from app.models.library import compact_text
 from app.schemas import (
     AlbumDetail,
     AlbumOut,
@@ -32,6 +31,7 @@ from app.schemas import (
     CreditsOut,
     DownloadRequestDetail,
     HomeOut,
+    LyricsHit,
     LyricsOut,
     MissingTracksOut,
     Page,
@@ -48,6 +48,7 @@ from app.services import (
     transcode,
     vocals,
 )
+from app.services import search as library_search
 from app.services.deezer import DeezerError, deezer
 from app.services.downloads import create_redownload
 from app.services.lyrics import get_lyrics
@@ -530,31 +531,6 @@ async def get_spectrum(id: uuid.UUID, user: CurrentUser, db: DB) -> Response:
 # --- search -----------------------------------------------------------------
 
 
-def _compact(text: str) -> str:
-    """Letters and digits only: "Don't Stop" and "dont stop" both become "dontstop", "AC/DC" becomes "acdc"."""
-    # lower(), not casefold(): it has to match Postgres' lower() ("ß" stays "ß").
-    return "".join(c for c in text.lower() if c.isalnum())
-
-
-def _search_match(column: ColumnElement[str], q: str) -> ColumnElement[bool]:
-    pattern = f"%{q.strip()}%"
-    compact = _compact(q)
-    if not compact:  # only punctuation, e.g. the band "!!!"
-        return column.ilike(pattern)
-    return or_(column.ilike(pattern), compact_text(column).contains(compact))
-
-
-def search_queries(q: str) -> tuple[Select[tuple[Artist]], Select[tuple[Album]], Select[tuple[Track]]]:
-    return (
-        select(Artist).where(_search_match(Artist.name, q)).order_by(Artist.name),
-        select(Album).options(*album_options()).where(_search_match(Album.title, q)).order_by(Album.title),
-        select(Track)
-        .options(*track_options())
-        .where(or_(_search_match(Track.title, q), _search_match(Track.artist_credit, q)))
-        .order_by(Track.title),
-    )
-
-
 @router.get("/search", response_model=SearchResult)
 async def search(
     user: CurrentUser,
@@ -563,14 +539,14 @@ async def search(
     q: str = Query(min_length=1, max_length=200),
     limit: int = Query(20, ge=1, le=100),
 ) -> SearchResult:
-    artist_query, album_query, track_query = search_queries(q)
-    artists = list(await db.scalars(artist_query.limit(limit)))
-    albums = list(await db.scalars(album_query.limit(limit)))
-    tracks = list(await db.scalars(track_query.limit(limit)))
+    artists = await library_search.artists(db, q, limit)
+    albums = await library_search.albums(db, q, limit)
+    tracks = await library_search.tracks(db, q, limit)
+    lyrics_hits = await library_search.lyrics(db, q, min(limit, 10))
     # Own playlists and mixes (also by their translated name or e.g. "80s"), plus other users' public playlists.
     lang = language(request)
     needle = q.strip().casefold()
-    compact = _compact(q)
+    wanted = [library_search.fold(word) for word in library_search.words(q)]
     candidates = await db.scalars(
         select(Playlist)
         .where(or_(Playlist.owner_id == user.id, (Playlist.is_public) & (Playlist.kind == "user")))
@@ -580,7 +556,7 @@ async def search(
         playlist
         for playlist in candidates
         if any(
-            needle in text.casefold() or (compact and compact in _compact(text))
+            needle in text.casefold() or (wanted and all(word in library_search.fold(text) for word in wanted))
             for text in (playlist.name, translate(playlist.name, lang), *mix_search_terms(playlist.mix_key))
         )
     ][:limit]
@@ -589,4 +565,12 @@ async def search(
         albums=await albums_out(db, albums),
         tracks=await tracks_out(db, user, tracks),
         playlists=await playlists_out(db, playlists, user.id, lang),
+        lyrics=[
+            LyricsHit(track=track, line=line)
+            for track, line in zip(
+                await tracks_out(db, user, [track for track, _ in lyrics_hits]),
+                (line for _, line in lyrics_hits),
+                strict=True,
+            )
+        ],
     )

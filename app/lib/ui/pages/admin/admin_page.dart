@@ -319,6 +319,8 @@ class _VocalAnalysisStatus extends ConsumerWidget {
     final numbers = NumberFormat.decimalPattern(context.l10n.localeName);
     final total = s['total'] as int;
     final analyzed = s['analyzed'] as int;
+    // Servers before 1.7.9 count failed songs as analyzed and send no failed count.
+    final failed = (s['failed'] as int?) ?? 0;
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Column(
@@ -327,13 +329,15 @@ class _VocalAnalysisStatus extends ConsumerWidget {
           switch (s['state']) {
             'installing' => const LinearProgressIndicator(),
             'failed' => const SizedBox.shrink(),
-            _ => LinearProgressIndicator(value: total == 0 ? 0 : (analyzed / total).clamp(0.0, 1.0)),
+            _ => LinearProgressIndicator(value: total == 0 ? 0 : ((analyzed + failed) / total).clamp(0.0, 1.0)),
           },
           const SizedBox(height: 8),
           Text(switch (s['state']) {
             'installing' => context.l10n.adminVocalAnalysisInstalling,
             'failed' => context.l10n.adminVocalAnalysisFailed('${s['message'] ?? ''}'),
-            _ => context.l10n.adminVocalAnalysisProgress(numbers.format(analyzed), numbers.format(total)),
+            _ =>
+              context.l10n.adminVocalAnalysisProgress(numbers.format(analyzed), numbers.format(total)) +
+                  (failed > 0 ? context.l10n.adminMixAnalysisFailed(numbers.format(failed)) : ''),
           }),
         ],
       ),
@@ -1343,7 +1347,7 @@ class _EditTrailingState extends ConsumerState<_EditTrailing> {
       final r = await ref.read(apiProvider).checkKey(widget.check!);
       if (!mounted) return;
       setState(() => _ok = r['ok'] == true);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${r['message'] ?? ''}')));
+      showInfo(context, '${r['message'] ?? ''}');
     } catch (e) {
       if (mounted) showError(context, e);
     } finally {

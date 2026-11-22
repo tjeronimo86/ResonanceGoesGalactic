@@ -12,7 +12,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api.dart';
 import '../../core/audiobooks.dart';
+import '../../core/desktop.dart';
 import '../../core/theme.dart';
+import '../tv/tv_ambient.dart';
 import '../../core/models.dart';
 import '../../core/session.dart';
 import '../../core/library.dart';
@@ -222,6 +224,7 @@ class _TrackControls extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             const SleepTimerButton(),
+            if (isDesktop) const AmbientModeButton(),
             if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
               IconButton(
                 tooltip: 'Galactic',
@@ -286,7 +289,6 @@ class TrackCover extends ConsumerWidget {
         ? () {
             final peaks = !ref.read(visualizerPeaksProvider);
             ref.read(visualizerPeaksProvider.notifier).set(peaks);
-            showInfo(context, peaks ? context.l10n.visualizerPeaksOn : context.l10n.visualizerPeaksOff);
           }
         : null;
     final reflect = ref.watch(visualizerReflectionProvider) && allowReflection;
@@ -1135,33 +1137,61 @@ class QueuePage extends ConsumerWidget {
           ? Center(
               child: Text(context.l10n.playerEmptyQueue, style: TextStyle(color: Palette.textMuted)),
             )
-          : ListView(
+          : ReorderableListView.builder(
               padding: const EdgeInsets.fromLTRB(8, 0, 8, kBottomInset),
-              children: [
-                _QueueHeading(context.l10n.playerNowPlaying),
-                TrackRow(track: p.current!, onPlay: ctrl.togglePlay, smart: p.smartIds.contains(p.current!.id)),
-                if (addedBy(p.index!) case final label?) _AddedBy(label),
-                for (final i in upcoming) ...[
-                  if (i == upcoming.first || section(i) != section(i - 1)) _QueueHeading(section(i)),
-                  TrackRow(
-                    key: ValueKey('q$i-${p.queue[i].id}'),
-                    track: p.queue[i],
-                    smart: p.smartIds.contains(p.queue[i].id),
-                    queued: jam == null && p.isQueued(i),
-                    onPlay: () => ctrl.jumpTo(i),
-                    onRemove: canRemove(i) ? () => ctrl.removeAt(i) : null,
-                    extraActions: [
-                      if (canRemove(i))
-                        TrackAction(
-                          context.l10n.playerRemoveFromQueue,
-                          Icons.remove_circle_outline,
-                          () => ctrl.removeAt(i),
-                        ),
-                    ],
-                  ),
-                  if (addedBy(i) case final label?) _AddedBy(label),
+              buildDefaultDragHandles: false,
+              header: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _QueueHeading(context.l10n.playerNowPlaying),
+                  TrackRow(track: p.current!, onPlay: ctrl.togglePlay, smart: p.smartIds.contains(p.current!.id)),
+                  if (addedBy(p.index!) case final label?) _AddedBy(label),
                 ],
-              ],
+              ),
+              itemCount: upcoming.length,
+              // A Jam's queue belongs to the server: it is not reordered here.
+              onReorderItem: (from, to) => ctrl.move(upcoming[from], upcoming[to]).catchError((Object e) {
+                if (context.mounted) showError(context, e);
+              }),
+              itemBuilder: (context, n) {
+                final i = upcoming[n];
+                return Column(
+                  key: ValueKey('q$i-${p.queue[i].id}'),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (n == 0 || section(i) != section(i - 1)) _QueueHeading(section(i)),
+                    TrackRow(
+                      track: p.queue[i],
+                      smart: p.smartIds.contains(p.queue[i].id),
+                      queued: jam == null && p.isQueued(i),
+                      onPlay: () => ctrl.jumpTo(i),
+                      onRemove: canRemove(i) ? () => ctrl.removeAt(i) : null,
+                      extraActions: [
+                        if (canRemove(i))
+                          TrackAction(
+                            context.l10n.playerRemoveFromQueue,
+                            Icons.remove_circle_outline,
+                            () => ctrl.removeAt(i),
+                          ),
+                      ],
+                      dragHandle: jam == null
+                          ? ReorderableDragStartListener(
+                              index: n,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Icon(
+                                  Icons.drag_handle,
+                                  color: Palette.textMuted,
+                                  semanticLabel: context.l10n.playerMoveInQueue,
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                    if (addedBy(i) case final label?) _AddedBy(label),
+                  ],
+                );
+              },
             ),
     );
   }

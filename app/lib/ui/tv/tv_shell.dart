@@ -79,6 +79,13 @@ class _TvShellState extends ConsumerState<TvShell> {
     return KeyEventResult.ignored;
   }
 
+  void _toggleBar() => _bar.hasFocus ? _enterContent() : _bar.requestFocus();
+
+  /// Down past the last rail entry reaches the bar, so it never takes scrolling to the end of a page.
+  void _railDown() {
+    if (!(FocusManager.instance.primaryFocus?.focusInDirection(TraversalDirection.down) ?? false)) _bar.requestFocus();
+  }
+
   void _enterContent() {
     FocusNode target = _content;
     while (target is FocusScopeNode && target.focusedChild != null) {
@@ -141,7 +148,10 @@ class _TvShellState extends ConsumerState<TvShell> {
         listTileTheme: const ListTileThemeData(contentPadding: EdgeInsets.all(16), minTileHeight: 80),
       ),
       child: Actions(
-        actions: {TvBackIntent: CallbackAction<TvBackIntent>(onInvoke: (_) => _back())},
+        actions: {
+          TvBackIntent: CallbackAction<TvBackIntent>(onInvoke: (_) => _back()),
+          TvNowPlayingBarIntent: CallbackAction<TvNowPlayingBarIntent>(onInvoke: (_) => _toggleBar()),
+        },
         child: PopScope(
           canPop: false,
           onPopInvokedWithResult: (didPop, _) {
@@ -168,6 +178,8 @@ class _TvShellState extends ConsumerState<TvShell> {
                                     onInvoke: (intent) {
                                       if (intent.direction == TraversalDirection.right) {
                                         _enterContent();
+                                      } else if (intent.direction == TraversalDirection.down) {
+                                        _railDown();
                                       } else {
                                         FocusManager.instance.primaryFocus?.focusInDirection(intent.direction);
                                       }
@@ -180,6 +192,10 @@ class _TvShellState extends ConsumerState<TvShell> {
                                   onKeyEvent: (_, event) {
                                     if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.arrowRight) {
                                       _enterContent();
+                                      return KeyEventResult.handled;
+                                    }
+                                    if (event is! KeyUpEvent && event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                      _railDown();
                                       return KeyEventResult.handled;
                                     }
                                     return KeyEventResult.ignored;

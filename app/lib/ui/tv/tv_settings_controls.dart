@@ -191,6 +191,10 @@ class TvSettingsTile extends StatelessWidget {
   const TvSettingsTile({super.key, required this.child});
   final Widget child;
 
+  /// Set while a tile forwards an activation, so one landing on the tile itself (focus on the tile, not on a
+  /// control inside it) ends there instead of forwarding to itself until the stack overflows.
+  static bool _forwarding = false;
+
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
@@ -199,7 +203,13 @@ class TvSettingsTile extends StatelessWidget {
       descendantsAreFocusable: true,
       onActivate: () {
         final focused = FocusManager.instance.primaryFocus?.context;
-        if (focused != null) Actions.maybeInvoke(focused, const ActivateIntent());
+        if (focused == null || _forwarding) return;
+        _forwarding = true;
+        try {
+          Actions.maybeInvoke(focused, const ActivateIntent());
+        } finally {
+          _forwarding = false;
+        }
       },
       child: Material(color: Colors.transparent, child: child),
     ),

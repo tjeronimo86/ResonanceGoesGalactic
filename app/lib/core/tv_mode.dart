@@ -38,7 +38,7 @@ class TvMode extends Notifier<bool> {
   @override
   bool build() {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) return ref.watch(androidTvProvider);
-    return isDesktop && (ref.read(prefsProvider).getBool('tv_mode') ?? false);
+    return isDesktop && (ref.read(prefsProvider).getBool('tv_mode') ?? isGamescope);
   }
 
   void set(bool enabled) {
@@ -51,7 +51,8 @@ class TvMode extends Notifier<bool> {
     if (!isDesktop) return;
     set(!state);
     try {
-      await windowManager.setFullScreen(state);
+      // Under gamescope the window stays fullscreen; only the interface changes.
+      await windowManager.setFullScreen(state || isGamescope);
     } on PlatformException catch (error) {
       debugPrint('TV fullscreen unavailable: $error');
     } on MissingPluginException {

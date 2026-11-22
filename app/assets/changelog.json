@@ -1,5 +1,59 @@
 [
   {
+    "version": "1.7.10",
+    "date": "2026-11-17",
+    "de": [
+      "Suche: Song und Künstler lassen sich zusammen suchen, in beliebiger Reihenfolge, etwa „bohemian queen“ oder „Bohemian Rhapsody by Queen“.",
+      "Suche: Umlaute dürfen ausgeschrieben sein („mueller“ findet Müller), Genre, Jahr und Jahrzehnt zählen mit („rock 1985“, „80er“), und Namen in anderen Schriften finden sich in lateinischer Schreibweise („kino“ findet Кино).",
+      "Suche in Songtexten: Ab zwei Wörtern zeigt die Suche unter „In Songtexten“ Songs, in denen die Zeile vorkommt.",
+      "PC-App: Der Vollbild-Player dimmt wie auf dem Fernseher nach ein paar Sekunden ohne Eingabe auf Cover und Titel, der Mond-Knopf sofort.",
+      "Meldungen erscheinen nur noch bei Wichtigem und verdecken den Player nicht mehr.",
+      "PC-App unter Linux: Resonance steht nicht mehr doppelt im Startmenü."
+    ],
+    "en": [
+      "Search: look for a song and its artist together, in any order, such as “bohemian queen” or “Bohemian Rhapsody by Queen”.",
+      "Search: umlauts may be written out (“mueller” finds Müller), genre, year and decade count too (“rock 1985”, “80s”), and names in other scripts are found by their Latin spelling (“kino” finds Кино).",
+      "Search in lyrics: with two words or more, search shows the songs containing that line under “In lyrics”.",
+      "PC app: like on the TV, the full-screen player dims to cover and title after a few seconds without input, or right away with the moon button.",
+      "Messages only appear for important things and no longer cover the player.",
+      "PC app on Linux: Resonance no longer shows up twice in the start menu."
+    ]
+  },
+  {
+    "version": "1.7.9",
+    "date": "2026-11-13",
+    "de": [
+      "Warteschlange: Kommende Songs lassen sich am Griff rechts mit dem Finger oder der Maus an eine andere Stelle ziehen. Zwischen die selbst eingereihten Songs gezogen, gehören sie danach dazu.",
+      "Gesangserkennung für AutoMix: Songs, bei denen die Analyse früher gescheitert ist, werden neu analysiert, die meistgehörten zuerst. Der Admin-Bereich zeigt gescheiterte Songs jetzt getrennt an."
+    ],
+    "en": [
+      "Queue: drag upcoming songs by the handle on the right to move them, with a finger or the mouse. Dropped among the songs you queued yourself, they join them.",
+      "Vocal detection for AutoMix: songs whose analysis failed before are analyzed again, the most played first. The admin area now shows failed songs separately."
+    ]
+  },
+  {
+    "version": "1.7.8",
+    "date": "2026-11-12",
+    "de": [
+      "Steam Gaming Mode: Die PC-App startet unter gamescope im Vollbild mit der TV-Oberfläche, statt in einem unscharfen Fenster mit schwarzen Balken. Auf NVIDIA-Grafikkarten zeichnet sie dort jetzt mit der Grafikkarte, mit rund 47 statt 5 bis 9 Bildern pro Sekunde.",
+      "TV-Oberfläche mit Controller: Y springt von überall zur Player-Leiste und wieder zurück, und in der linken Navigation führt „runter“ nach dem letzten Eintrag ebenfalls dorthin. In den Einstellungen stürzt das Bestätigen einer Zeile nicht mehr ab.",
+      "PC-App unter Linux: Beim Schließen des Fensters erscheint keine Absturzmeldung mehr.",
+      "Passwort vergessen: Ein angemeldetes Gerät zeigt unter Einstellungen einen Code. Mit ihm setzt du beim Login ein neues Passwort, die anderen Geräte bleiben angemeldet.",
+      "Login: Passwort-Manager wie Bitwarden füllen Benutzername und Passwort aus und bieten nach dem Anmelden an, es zu speichern.",
+      "Playlist-Vorschläge passen besser zur Playlist: Songs von ihren Alben und Serien kommen zuerst, Stil, Energie und Tempo der Playlist zählen mit.",
+      "Die Suche ist deutlich schneller, und der Shuffle-Knopf reagiert sofort."
+    ],
+    "en": [
+      "Steam Gaming Mode: under gamescope the PC app starts fullscreen with the TV interface instead of a blurry window with black bars. On NVIDIA graphics cards it now draws on the GPU there, at about 47 instead of 5 to 9 frames per second.",
+      "TV interface with a controller: Y jumps from anywhere to the player bar and back, and down past the last entry of the left navigation gets there too. Confirming a row in Settings no longer crashes.",
+      "PC app on Linux: closing the window no longer brings up a crash report.",
+      "Forgot password: a signed-in device shows a code under Settings. Use it at login to set a new password; your other devices stay signed in.",
+      "Login: password managers like Bitwarden fill in username and password and offer to save them after you sign in.",
+      "Playlist suggestions fit the playlist better: songs from its albums and series come first, and the playlist's style, energy and tempo count.",
+      "Search is much faster, and the shuffle button responds right away."
+    ]
+  },
+  {
     "version": "1.7.7",
     "date": "2026-11-06",
     "de": [
@@ -89,7 +143,7 @@
       "Songs direkt in eine Playlist suchen: Neue Playlists starten mit einem Such-Knopf, und jede eigene Playlist hat dafür einen Knopf in der Leiste."
     ],
     "en": [
-      "Playlists suggest fitting songs at the bottom, added with one tap; \u201cNew suggestions\u201d fetches others. Empty playlists get suggestions from your liked songs.",
+      "Playlists suggest fitting songs at the bottom, added with one tap; “New suggestions” fetches others. Empty playlists get suggestions from your liked songs.",
       "Search songs straight into a playlist: new playlists start with a search button, and every own playlist has one in its action bar."
     ]
   },

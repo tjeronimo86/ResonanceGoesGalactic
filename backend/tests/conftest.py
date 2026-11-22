@@ -18,6 +18,7 @@ import requests  # noqa: E402
 
 from app.db import Base, engine  # noqa: E402
 from app.main import app  # noqa: E402
+from app.models.library import SEARCH_FOLD_DDL  # noqa: E402
 
 MUSIC_DIR = _tmp / "music"
 
@@ -63,6 +64,8 @@ async def _schema():
     assert engine.url.database.startswith("app_test")
     async with engine.begin() as conn:
         await conn.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+        for statement in SEARCH_FOLD_DDL:
+            await conn.exec_driver_sql(statement)
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     yield

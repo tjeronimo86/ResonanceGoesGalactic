@@ -245,11 +245,18 @@ class ArtistDetail(ArtistOut):
     top_tracks: list[TrackOut] = []
 
 
+class LyricsHit(BaseModel):
+    track: TrackOut
+    # The line of the lyrics the query was found in.
+    line: str
+
+
 class SearchResult(BaseModel):
     artists: list[ArtistOut]
     albums: list[AlbumOut]
     tracks: list[TrackOut]
     playlists: list["PlaylistOut"] = []
+    lyrics: list[LyricsHit] = []
 
 
 class Page[T](BaseModel):

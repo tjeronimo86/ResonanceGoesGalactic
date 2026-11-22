@@ -50,7 +50,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(player.queued, ['one']);
     expect(find.text('row'), findsOneWidget);
-    expect(find.text('“Song one” added to queue'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing, reason: 'queueing a song needs no message');
     expect(removed, 0);
     await tester.drag(find.text('row'), const Offset(-300, 0));
     await tester.pumpAndSettle();

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/desktop.dart';
 import '../../core/tv_mode.dart';
 import '../../l10n/l10n.dart';
 import '../../player/player.dart';
@@ -20,6 +21,9 @@ class TvAmbient extends ConsumerStatefulWidget {
   static final _focusHeldKeys = <LogicalKeyboardKey>{};
   // How long the full-screen player waits without input before it dims.
   static const idleDelay = Duration(seconds: 10);
+  // After it is switched on in the player, input is ignored this long: the release of the key or controller button
+  // that pressed the switch, or the mouse moving on after the click, would wake it right away.
+  static const showNowGrace = Duration(milliseconds: 1500);
   static bool consumeNext = false;
   static bool _showing = false;
   // How many full-screen players are open: the ambient mode only dims the player, not the rest of the app.
@@ -51,6 +55,7 @@ class _TvAmbientState extends ConsumerState<TvAmbient> {
   Timer? _idleTimer;
   Timer? _fadeTimer;
   Timer? _driftTimer;
+  Timer? _grace;
   ProviderSubscription<bool>? _mode;
   ProviderSubscription<bool>? _setting;
   ProviderSubscription<PlayerView>? _player;
@@ -75,7 +80,8 @@ class _TvAmbientState extends ConsumerState<TvAmbient> {
   void _syncEligibility() {
     final player = ref.read(playerProvider);
     final loaded = player.current != null || player.book != null || player.station != null;
-    final allowed = ref.read(tvModeProvider) && ref.read(tvAmbientModeProvider) && TvAmbient._players.value > 0;
+    // Only full-screen players mark a zone: the TV player, and the desktop app's player.
+    final allowed = ref.read(tvAmbientModeProvider) && TvAmbient._players.value > 0;
     // Once dimmed it stays until the remote is used: a song change briefly is not "playing" and must not wake it.
     if (_visible && allowed && loaded) return;
     final eligible = allowed && player.playing && loaded;
@@ -90,10 +96,14 @@ class _TvAmbientState extends ConsumerState<TvAmbient> {
   }
 
   void _showNow() {
-    _syncEligibility();
-    if (!_eligible) return;
+    final player = ref.read(playerProvider);
+    final loaded = player.current != null || player.book != null || player.station != null;
+    // Asked for directly, it also dims while paused; it then stays until the next input like after a pause.
+    if (!ref.read(tvAmbientModeProvider) || TvAmbient._players.value == 0 || !loaded) return;
     _idleTimer?.cancel();
     _setVisible(true);
+    _grace?.cancel();
+    _grace = Timer(TvAmbient.showNowGrace, () => _grace = null);
   }
 
   void _scheduleIdle() {
@@ -105,6 +115,7 @@ class _TvAmbientState extends ConsumerState<TvAmbient> {
   }
 
   void _onInput() {
+    if (_visible && _grace != null) return;
     if (_visible) {
       _setVisible(false);
       // It may have stayed dimmed through a pause: decide afresh whether to dim again later.
@@ -174,6 +185,7 @@ class _TvAmbientState extends ConsumerState<TvAmbient> {
     _idleTimer?.cancel();
     _fadeTimer?.cancel();
     _driftTimer?.cancel();
+    _grace?.cancel();
     TvAmbient._inputChanges.removeListener(_onInput);
     TvAmbient._players.removeListener(_syncEligibility);
     TvAmbient._showNowRequests.removeListener(_showNow);
@@ -289,7 +301,7 @@ class TvAmbientModeSetting extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!ref.watch(tvModeProvider)) return const SizedBox.shrink();
+    if (!ref.watch(tvModeProvider) && !isDesktop) return const SizedBox.shrink();
     return SwitchListTile(
       title: Text(context.l10n.settingsTvAmbient),
       subtitle: Text(context.l10n.settingsTvAmbientHint),
@@ -297,6 +309,22 @@ class TvAmbientModeSetting extends ConsumerWidget {
       onChanged: ref.read(tvAmbientModeProvider.notifier).set,
     );
   }
+}
+
+/// Desktop player: dims right away (switching the ambient mode on if it was off). Switching it off is in the
+/// settings: a toggle here was on by default, so its first click turned it off and seemed to do nothing.
+class AmbientModeButton extends ConsumerWidget {
+  const AmbientModeButton({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => IconButton(
+    tooltip: context.l10n.settingsTvAmbient,
+    icon: const Icon(Icons.dark_mode_outlined),
+    onPressed: () {
+      if (!ref.read(tvAmbientModeProvider)) ref.read(tvAmbientModeProvider.notifier).set(true);
+      TvAmbient.showNow();
+    },
+  );
 }
 
 /// Marks its subtree as the full-screen player, the only place the ambient mode dims.

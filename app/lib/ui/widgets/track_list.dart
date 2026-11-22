@@ -36,6 +36,7 @@ class TrackRow extends ConsumerStatefulWidget {
     this.extraActions = const [],
     this.addedBy,
     this.mixInfo,
+    this.dragHandle,
   });
 
   final Track track;
@@ -57,6 +58,9 @@ class TrackRow extends ConsumerStatefulWidget {
 
   /// Tempo and key (transition editor), shown before the like button.
   final Widget? mixInfo;
+
+  /// In a reorderable list (the queue): the handle that moves the song, at the end of the row.
+  final Widget? dragHandle;
 
   @override
   ConsumerState<TrackRow> createState() => _TrackRowState();
@@ -191,6 +195,7 @@ class _TrackRowState extends ConsumerState<TrackRow> {
                   color: Palette.textMuted,
                   onPressed: () => showTrackMenu(context, ref, t, widget.extraActions),
                 ),
+                ?widget.dragHandle,
               ],
             ),
           ),
@@ -234,13 +239,11 @@ class QueueSwipe extends ConsumerWidget {
         HapticFeedback.mediumImpact();
         if (direction == DismissDirection.endToStart) {
           onRemove?.call();
-          showInfo(context, context.l10n.playerRemovedTrack(track.title));
           return false;
         }
         ref.read(playerProvider.notifier).addToQueue(track).catchError((Object e) {
           if (context.mounted) showError(context, e);
         });
-        showInfo(context, context.l10n.playerQueuedTrack(track.title));
         return false;
       },
       child: child,
@@ -394,7 +397,6 @@ Future<void> showAddToPlaylist(BuildContext context, WidgetRef ref, List<String>
               final p = await createPlaylistInteractive(context, ref);
               if (p == null) return;
               await actions.addToPlaylist(p.id, trackIds);
-              if (context.mounted) showInfo(context, context.l10n.libraryAddedToPlaylist((p.name).toString()));
             },
           ),
           for (final p in playlists.where((p) => p.canEdit && !p.isRadio && !p.isMix))
@@ -409,7 +411,6 @@ Future<void> showAddToPlaylist(BuildContext context, WidgetRef ref, List<String>
                 Navigator.pop(sheet);
                 try {
                   await actions.addToPlaylist(p.id, trackIds);
-                  if (context.mounted) showInfo(context, context.l10n.libraryAddedToPlaylist((p.name).toString()));
                 } catch (e) {
                   if (context.mounted) showError(context, e);
                 }

@@ -35,6 +35,7 @@ class TvControllerInput {
       GamepadButton.a => LogicalKeyboardKey.gameButtonA,
       GamepadButton.b => LogicalKeyboardKey.gameButtonB,
       GamepadButton.x => LogicalKeyboardKey.gameButtonX,
+      GamepadButton.y => LogicalKeyboardKey.gameButtonY,
       GamepadButton.leftBumper => LogicalKeyboardKey.gameButtonLeft1,
       GamepadButton.rightBumper => LogicalKeyboardKey.gameButtonRight1,
       GamepadButton.start => LogicalKeyboardKey.gameButtonStart,
@@ -189,6 +190,10 @@ class _TvInputState extends ConsumerState<TvInput> with WidgetsBindingObserver {
       } else if (context != null) {
         Navigator.of(context).maybePop();
       }
+      return true;
+    }
+    if (key == LogicalKeyboardKey.gameButtonY) {
+      if (context != null) Actions.maybeInvoke(context, const TvNowPlayingBarIntent());
       return true;
     }
     if (key == LogicalKeyboardKey.gameButtonStart) {

@@ -1,7 +1,8 @@
 """Finds where a song's voice starts and ends (run with the Python of the Demucs environment, not the server's).
 
 Reads one JSON request per line on stdin – {"path": "...", "duration": 215.3} – and answers each with one JSON line on
-stdout: {"vocals_in": 12.5, "vocals_out": 201.0} or {"error": "..."}. A request with "stem" and "length" instead writes
+stdout: {"vocals_in": 12.5, "vocals_out": 201.0} or {"error": "..."}; "threads" in a request sets how many threads
+the separation uses for it. A request with "stem" and "length" instead writes
 the song's first `length` seconds without the voice (drums, bass and the rest) as Opus to "stem": {"stem": "..."}. The first line is {"ready": true} once the model
 is loaded. Only the intro and the outro are separated (the parts AutoMix blends); a part without a voice reports the
 edge of its window, a song without any voice its length and zero.
@@ -108,13 +109,15 @@ def main() -> None:
     os.dup2(2, 1)
     sys.stdout = sys.stderr
     os.nice(15)
-    torch.set_num_threads(max(1, (os.cpu_count() or 2) // 2))
+    default_threads = max(1, (os.cpu_count() or 2) // 2)
+    torch.set_num_threads(default_threads)
     model = get_model("htdemucs")
     model.eval()
     print(json.dumps({"ready": True}), file=answers, flush=True)
     for line in sys.stdin:
         try:
             request = json.loads(line)
+            torch.set_num_threads(max(1, int(request.get("threads") or default_threads)))
             if "stem" in request:
                 result = instrumental(model, request["path"], float(request["length"]), request["stem"])
             else:

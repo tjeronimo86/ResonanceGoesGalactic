@@ -332,7 +332,9 @@ async def test_status_counts_current_results_for_permanent_tracks_and_requires_a
     empty = await client.get("/api/mixpoints/status", headers=headers)
     assert empty.status_code == 200
     assert {key: empty.json()[key] for key in ("total", "analyzed", "failed")} == {"total": 2, "analyzed": 0, "failed": 0}
-    assert empty.json()["vocals"] == {"state": "off", "message": None, "enabled": False, "total": 2, "analyzed": 0}
+    assert empty.json()["vocals"] == {
+        "state": "off", "message": None, "enabled": False, "total": 2, "analyzed": 0, "failed": 0
+    }
     invite = (await client.post("/api/admin/invites", json={}, headers=headers)).json()["token"]
     user = await register(client, "mix-listener", invite)
     assert (await client.get("/api/mixpoints/status", headers=auth(user["token"]))).status_code == 403

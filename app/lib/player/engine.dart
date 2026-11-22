@@ -1731,6 +1731,18 @@ class PlaybackEngine {
     await Future.wait(_players.map((p) => p.removeAudioSourceAt(index)));
   }
 
+  /// Moves a song that is not playing to [to] (its index afterwards). Removed and inserted again: media_kit's own
+  /// move counts indices differently from just_audio's.
+  Future<void> move(int from, int to) async {
+    await finishFade();
+    final source = _sources.removeAt(from);
+    _sources.insert(to, source);
+    for (final player in _players) {
+      await player.removeAudioSourceAt(from);
+      await player.insertAudioSource(to, source());
+    }
+  }
+
   Future<void> setSources(
     List<SourceFactory> sources, {
     required int initialIndex,

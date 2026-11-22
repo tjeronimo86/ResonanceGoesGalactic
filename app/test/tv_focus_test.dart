@@ -200,6 +200,7 @@ void main() {
       GamepadButton.a,
       GamepadButton.b,
       GamepadButton.x,
+      GamepadButton.y,
       GamepadButton.leftBumper,
       GamepadButton.rightBumper,
       GamepadButton.start,
@@ -212,6 +213,7 @@ void main() {
       LogicalKeyboardKey.gameButtonA,
       LogicalKeyboardKey.gameButtonB,
       LogicalKeyboardKey.gameButtonX,
+      LogicalKeyboardKey.gameButtonY,
       LogicalKeyboardKey.gameButtonLeft1,
       LogicalKeyboardKey.gameButtonRight1,
       LogicalKeyboardKey.gameButtonStart,
@@ -416,6 +418,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(FocusManager.instance.primaryFocus!.context!.findAncestorWidgetOfExactType<TvFocusable>(), isNotNull);
     events.add(_event(button: GamepadButton.dpadUp, value: 0));
+    // Y jumps to the bar from anywhere on the page and back to the same spot.
+    final inPage = FocusManager.instance.primaryFocus;
+    events.add(_event(button: GamepadButton.y));
+    await tester.pumpAndSettle();
+    expect(FocusManager.instance.primaryFocus!.debugLabel, 'TV now playing bar');
+    events.add(_event(button: GamepadButton.y, value: 0));
+    events.add(_event(button: GamepadButton.y));
+    await tester.pumpAndSettle();
+    expect(FocusManager.instance.primaryFocus, inPage);
+    events.add(_event(button: GamepadButton.y, value: 0));
+    events.add(_event(button: GamepadButton.dpadLeft));
+    await tester.pumpAndSettle();
+    expect(FocusManager.instance.primaryFocus!.debugLabel, 'TV Home');
+    events.add(_event(button: GamepadButton.dpadLeft, value: 0));
+    // Down past the last rail entry reaches the bar.
+    final labels = <String?>[];
+    for (var i = 0; i < 6; i++) {
+      events
+        ..add(_event(button: GamepadButton.dpadDown))
+        ..add(_event(button: GamepadButton.dpadDown, value: 0));
+      await tester.pumpAndSettle();
+      labels.add(FocusManager.instance.primaryFocus!.debugLabel);
+    }
+    expect(labels, [
+      'TV /search',
+      'TV /library',
+      'TV /world-radio',
+      'TV /podcasts',
+      'TV /settings',
+      'TV now playing bar',
+    ]);
     events.add(_event(button: GamepadButton.dpadLeft));
     await tester.pumpAndSettle();
     expect(FocusManager.instance.primaryFocus!.debugLabel, 'TV Home');

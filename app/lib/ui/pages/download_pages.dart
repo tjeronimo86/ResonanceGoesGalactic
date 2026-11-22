@@ -122,11 +122,10 @@ class _CatalogPlaylistPageState extends ConsumerState<CatalogPlaylistPage> {
           .read(apiProvider)
           .startSpotifyImport(liked: false, playlistIds: const [], links: [widget.link], downloadMissing: true);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.spotifyStarted),
-          action: SnackBarAction(label: l10n.catalogPlaylistShowImport, onPressed: () => context.push('/spotify')),
-        ),
+      showMessage(
+        context,
+        l10n.spotifyStarted,
+        action: SnackBarAction(label: l10n.catalogPlaylistShowImport, onPressed: () => context.push('/spotify')),
       );
     } catch (e) {
       if (mounted) showError(context, e);

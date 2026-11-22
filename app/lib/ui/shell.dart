@@ -108,7 +108,7 @@ class AppShell extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(8),
                           child: ColoredBox(
                             color: Palette.background,
-                            child: UpdateNotifier(child: child),
+                            child: PlayerArea(child: UpdateNotifier(child: child)),
                           ),
                         ),
                       ),
@@ -116,8 +116,13 @@ class AppShell extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (offline) const _OfflineBanner(),
-              const DesktopPlayerBar(),
+              MeasureHeight(
+                height: playerAreaHeight,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [if (offline) const _OfflineBanner(), const DesktopPlayerBar()],
+                ),
+              ),
             ],
           ),
         ),
@@ -139,14 +144,19 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       body: Stack(
         children: [
-          Positioned.fill(child: UpdateNotifier(child: child)),
+          Positioned.fill(
+            child: PlayerArea(child: UpdateNotifier(child: child)),
+          ),
           Positioned(
             left: 0,
             right: 0,
             bottom: 4,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [if (offline) const _OfflineBanner(), const MiniPlayer()],
+            child: MeasureHeight(
+              height: playerAreaHeight,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [if (offline) const _OfflineBanner(), const MiniPlayer()],
+              ),
             ),
           ),
         ],

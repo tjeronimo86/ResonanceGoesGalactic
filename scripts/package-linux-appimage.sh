@@ -54,6 +54,18 @@ cat >"$APPDIR/AppRun" <<EOF
 #!/bin/sh
 HERE=\$(dirname "\$(readlink -f "\$0")")
 export LIBMPV_LIBRARY_PATH="\$HERE/usr/lib/$(basename "$MPV")"
+# Steam's Gaming Mode (gamescope) runs the app through XWayland, where NVIDIA's EGL gives Flutter no GPU context and
+# Mesa falls back to drawing on the CPU (5-9 fps). Mesa's OpenGL on Vulkan (Zink) runs on the NVIDIA GPU there.
+# RESONANCE_NO_ZINK=1 turns this off; an EGL vendor chosen by the user is left alone.
+if [ -z "\${RESONANCE_NO_ZINK:-}" ] && [ -z "\${__EGL_VENDOR_LIBRARY_FILENAMES:-}" ] && [ -d /proc/driver/nvidia ] &&
+  { [ "\${XDG_CURRENT_DESKTOP:-}" = gamescope ] || [ -n "\${GAMESCOPE_WAYLAND_DISPLAY:-}" ]; }; then
+  for MESA_EGL in /usr/share/glvnd/egl_vendor.d/50_mesa.json /etc/glvnd/egl_vendor.d/50_mesa.json; do
+    if [ -f "\$MESA_EGL" ]; then
+      export __EGL_VENDOR_LIBRARY_FILENAMES="\$MESA_EGL" MESA_LOADER_DRIVER_OVERRIDE=zink
+      break
+    fi
+  done
+fi
 exec "\$HERE/usr/bin/resonance" "\$@"
 EOF
 chmod +x "$APPDIR/AppRun"

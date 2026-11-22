@@ -284,6 +284,18 @@ abstract class AppLocalizations {
   /// **'Keine Treffer für „{query}“ in deiner Bibliothek.'**
   String searchNoLibraryResults(String query);
 
+  /// No description provided for @searchInLyrics.
+  ///
+  /// In de, this message translates to:
+  /// **'In Songtexten'**
+  String get searchInLyrics;
+
+  /// No description provided for @searchLyricsLine.
+  ///
+  /// In de, this message translates to:
+  /// **'„{line}“'**
+  String searchLyricsLine(String line);
+
   /// No description provided for @tvKeyboardSpace.
   ///
   /// In de, this message translates to:
@@ -632,6 +644,12 @@ abstract class AppLocalizations {
   /// **'Aus Warteschlange entfernen'**
   String get playerRemoveFromQueue;
 
+  /// No description provided for @playerMoveInQueue.
+  ///
+  /// In de, this message translates to:
+  /// **'Verschieben'**
+  String get playerMoveInQueue;
+
   /// No description provided for @playerNextInQueue.
   ///
   /// In de, this message translates to:
@@ -643,12 +661,6 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Danach'**
   String get playerLater;
-
-  /// No description provided for @playerRemovedTrack.
-  ///
-  /// In de, this message translates to:
-  /// **'„{title}“ aus der Warteschlange entfernt'**
-  String playerRemovedTrack(String title);
 
   /// No description provided for @settingsAccount.
   ///
@@ -1814,12 +1826,6 @@ abstract class AppLocalizations {
   /// **'Zur Warteschlange hinzufügen'**
   String get playerAddToQueue;
 
-  /// No description provided for @playerQueuedTrack.
-  ///
-  /// In de, this message translates to:
-  /// **'„{title}“ in der Warteschlange'**
-  String playerQueuedTrack(String title);
-
   /// No description provided for @playerGoToAlbum.
   ///
   /// In de, this message translates to:
@@ -1837,12 +1843,6 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Metadaten korrigieren'**
   String get editorCorrectMetadata;
-
-  /// No description provided for @libraryAddedToPlaylist.
-  ///
-  /// In de, this message translates to:
-  /// **'Zu „{name}“ hinzugefügt'**
-  String libraryAddedToPlaylist(String name);
 
   /// No description provided for @commonSave.
   ///
@@ -4124,18 +4124,6 @@ abstract class AppLocalizations {
   /// **'Cover und Visualizer spiegeln'**
   String get settingsVisualizerReflectionHint;
 
-  /// No description provided for @visualizerPeaksOn.
-  ///
-  /// In de, this message translates to:
-  /// **'Punkte an'**
-  String get visualizerPeaksOn;
-
-  /// No description provided for @visualizerPeaksOff.
-  ///
-  /// In de, this message translates to:
-  /// **'Punkte aus'**
-  String get visualizerPeaksOff;
-
   /// No description provided for @settingsCoverflow.
   ///
   /// In de, this message translates to:
@@ -6199,12 +6187,6 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Hinzugefügt'**
   String get playlistAdded;
-
-  /// No description provided for @playlistAddedTo.
-  ///
-  /// In de, this message translates to:
-  /// **'„{title}“ hinzugefügt'**
-  String playlistAddedTo(Object title);
 
   /// No description provided for @transitionCustom.
   ///

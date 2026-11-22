@@ -11,6 +11,13 @@ import 'package:window_manager/window_manager.dart';
 bool get isDesktop =>
     !kIsWeb && (defaultTargetPlatform == TargetPlatform.linux || defaultTargetPlatform == TargetPlatform.windows);
 
+/// Steam's Gaming Mode (gamescope, e.g. Bazzite or SteamOS on a TV): the app is the only window on the screen.
+bool get isGamescope =>
+    !kIsWeb &&
+    defaultTargetPlatform == TargetPlatform.linux &&
+    (Platform.environment['XDG_CURRENT_DESKTOP'] == 'gamescope' ||
+        Platform.environment['GAMESCOPE_WAYLAND_DISPLAY'] != null);
+
 /// Android on a desktop screen (Samsung DeX, Android's desktop mode, Chromebooks): behaves like the desktop app.
 final androidDesktopProvider = NotifierProvider<AndroidDesktop, bool>(AndroidDesktop.new);
 
@@ -61,6 +68,15 @@ String formatBounds(Rect r) => [r.left, r.top, r.width, r.height].map((v) => v.r
 /// Title, minimum size, and the size/position from the last session.
 Future<void> initDesktopWindow(SharedPreferences prefs) async {
   await windowManager.ensureInitialized();
+  if (isGamescope) {
+    // gamescope scales a smaller window up to the screen and keeps its aspect ratio: a 1280x800 window ends up
+    // blurry with black bars. Fullscreen gets the real resolution.
+    await windowManager.waitUntilReadyToShow(const WindowOptions(title: 'Resonance', fullScreen: true), () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+    return;
+  }
   final bounds = parseBounds(prefs.getString(_boundsKey));
   await windowManager.waitUntilReadyToShow(
     WindowOptions(title: 'Resonance', minimumSize: minWindowSize, size: bounds?.size ?? const Size(1280, 800)),
@@ -103,9 +119,8 @@ class _WindowSaver extends WindowListener {
 
 /// Menu entry for an AppImage started directly (Exec = the AppImage's path). Wayland desktops look up the taskbar
 /// icon by app id (de.knode.resonance) in the .desktop files, so without it KDE/GNOME show a generic icon.
-/// The icon is an absolute path: icon theme caches would hide a freshly added theme icon. [hidden] keeps the entry
-/// out of menus and search when another tool (AppImageLauncher, Gear Lever) already added one for this AppImage.
-String appImageDesktopEntry(String appImage, String icon, {bool hidden = false}) {
+/// The icon is an absolute path: icon theme caches would hide a freshly added theme icon.
+String appImageDesktopEntry(String appImage, String icon) {
   final exec = appImage.replaceAllMapped(RegExp(r'["`$\\]'), (m) => '\\${m[0]}').replaceAll('\\', '\\\\');
   return """[Desktop Entry]
 Type=Application
@@ -117,10 +132,13 @@ Icon=$icon
 Categories=AudioVideo;Audio;Player;
 StartupWMClass=de.knode.resonance
 Terminal=false
-${hidden ? 'NoDisplay=true\n' : ''}""";
+""";
 }
 
 /// Installs/updates the taskbar entry and icon of the running AppImage in ~/.local/share (also after it was moved).
+/// When another tool (Gear Lever, AppImageLauncher) already added an entry for this AppImage, ours is removed: it
+/// copies the AppImage's own entry with StartupWMClass=de.knode.resonance, so the taskbar still finds the icon, and
+/// Plasma's search lists even NoDisplay entries, which showed Resonance twice.
 Future<void> registerAppImage() async {
   final appImage = Platform.environment['APPIMAGE'];
   final home = Platform.environment['HOME'];
@@ -142,7 +160,11 @@ Future<void> registerAppImage() async {
         if ((await file.readAsString()).contains(appImage)) integrated = true;
       }
     }
-    final content = appImageDesktopEntry(appImage, iconTarget.path, hidden: integrated);
+    if (integrated) {
+      if (await entry.exists()) await entry.delete();
+      return;
+    }
+    final content = appImageDesktopEntry(appImage, iconTarget.path);
     if (await entry.exists() && await entry.readAsString() == content) return;
     await applications.create(recursive: true);
     await entry.writeAsString(content);

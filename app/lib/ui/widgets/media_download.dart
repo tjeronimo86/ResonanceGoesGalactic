@@ -105,7 +105,7 @@ Future<void> openMediaDownload(BuildContext context, WidgetRef ref, MediaDownloa
 Future<void> openEbookFile(BuildContext context, String path) async {
   // Hands the file to a reader app (Android, iOS) or the system's default program (desktop).
   if (!await FileDownloader().openFile(filePath: path) && context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.mediaOpenFailed)));
+    showInfo(context, context.l10n.mediaOpenFailed);
   }
 }
 

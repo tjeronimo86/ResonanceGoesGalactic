@@ -1,5 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
+
+import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,12 +75,12 @@ const _station = Station(
   codec: 'MP3',
 );
 
-NormalizedGamepadEvent _button(GamepadButton button) => NormalizedGamepadEvent(
+NormalizedGamepadEvent _button(GamepadButton button, {bool pressed = true}) => NormalizedGamepadEvent(
   gamepadId: 'test',
   timestamp: 0,
-  value: 1,
+  value: pressed ? 1 : 0,
   button: button,
-  rawEvent: GamepadEvent(gamepadId: 'test', timestamp: 0, type: KeyType.button, key: '', value: 1),
+  rawEvent: GamepadEvent(gamepadId: 'test', timestamp: 0, type: KeyType.button, key: '', value: pressed ? 1 : 0),
 );
 
 void main() {
@@ -213,7 +217,6 @@ void main() {
   for (final (tvMode, ambientMode, playing, loaded, name) in [
     (true, true, false, true, 'paused playback'),
     (true, false, true, true, 'ambient preference off'),
-    (false, true, true, true, 'non-TV mode'),
     (true, true, true, false, 'no loaded media'),
   ]) {
     testWidgets('ambient mode stays hidden for $name', (tester) async {
@@ -223,6 +226,16 @@ void main() {
       expect(find.byKey(const ValueKey('tv-ambient-artwork')), findsNothing);
     });
   }
+
+  testWidgets('the desktop player dims outside TV mode as well', (tester) async {
+    await mount(tester, tvMode: false);
+    await tester.pump(const Duration(seconds: 10));
+    expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('tv-ambient-overlay'))).opacity, 1);
+    expect(find.byKey(const ValueKey('tv-ambient-title')), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('tv-ambient-overlay'))).opacity, 0);
+  });
 
   testWidgets('ambient mode stays hidden away from the full-screen player', (tester) async {
     await mount(tester, onPlayer: false);
@@ -235,6 +248,29 @@ void main() {
     TvAmbient.showNow();
     await tester.pump();
     expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('tv-ambient-overlay'))).opacity, 1);
+  });
+
+  testWidgets('asked for directly it also dims while paused', (tester) async {
+    await mount(tester, playing: false);
+    TvAmbient.showNow();
+    await tester.pump();
+    expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('tv-ambient-overlay'))).opacity, 1);
+    await tester.pump(TvAmbient.showNowGrace);
+  });
+
+  testWidgets('releasing the key or button that switched it on does not wake it again', (tester) async {
+    final (_, events, _, _) = await mount(tester);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.enter);
+    TvAmbient.showNow();
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.enter);
+    events.add(_button(GamepadButton.a, pressed: false));
+    await tester.pump();
+    expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('tv-ambient-overlay'))).opacity, 1);
+    await tester.pump(TvAmbient.showNowGrace);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+    expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('tv-ambient-overlay'))).opacity, 0);
   });
 
   testWidgets('keyboard input resets the 10-second idle timer', (tester) async {
@@ -273,7 +309,7 @@ void main() {
     expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('tv-ambient-overlay'))).opacity, 0);
   });
 
-  testWidgets('ambient preference setting is TV-only and persists changes', (tester) async {
+  testWidgets('ambient preference setting shows in TV mode, not on phones, and persists changes', (tester) async {
     SharedPreferences.setMockInitialValues({'tv_mode': false});
     final prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
@@ -301,5 +337,44 @@ void main() {
     await tester.pump();
     expect(container.read(tvAmbientModeProvider), isFalse);
     expect(container.read(prefsProvider).getBool('tv.ambient_mode'), isFalse);
+  });
+
+  testWidgets('the desktop app shows the setting and a player button that dims right away', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+    final (container, _, _, _) = await mount(tester, tvMode: false, ambientMode: false);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const TvInput(
+            child: TvAmbientZone(
+              child: Scaffold(body: Column(children: [TvAmbientModeSetting(), AmbientModeButton()])),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Ambient mode'), findsOneWidget);
+    await tester.tap(find.byTooltip('Ambient mode'));
+    await tester.pump();
+    expect(container.read(tvAmbientModeProvider), isTrue, reason: 'dimming switches the mode on');
+    expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('tv-ambient-overlay'))).opacity, 1);
+    // The mouse moving on right after the click must not wake it.
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await gesture.addPointer(location: const Offset(5, 5));
+    await gesture.moveTo(const Offset(8, 9));
+    await tester.pump();
+    expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('tv-ambient-overlay'))).opacity, 1);
+    await tester.pump(TvAmbient.showNowGrace);
+    await gesture.moveTo(const Offset(40, 40));
+    await tester.pump();
+    expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('tv-ambient-overlay'))).opacity, 0);
+    await gesture.removePointer();
+    await tester.pump(const Duration(seconds: 1));
+    debugDefaultTargetPlatformOverride = null;
   });
 }

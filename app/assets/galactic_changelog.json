@@ -1,5 +1,16 @@
 [
   {
+    "title": "Galactic 4 – 22. November 2026",
+    "de": [
+      "Auf den Stand von Resonance 1.7.10 gebracht: neue Suche (Titel und Künstler in beliebiger Reihenfolge, Umlaute, Jahre, Genres, Liedtexte), Warteschlange per Ziehen umsortieren, ruhigere Meldungen über dem Mini-Player",
+      "Songs ohne Cover werden nicht mehr bei jeder Änderung der Warteschlange erneut angefragt"
+    ],
+    "en": [
+      "Brought up to Resonance 1.7.10: new search (song and artist in any order, umlauts, years, genres, lyrics), reorder the queue by dragging, quieter messages above the mini player",
+      "Songs without a cover are no longer requested again on every queue change"
+    ]
+  },
+  {
     "title": "Galactic 3 – 13. November 2026",
     "de": [
       "AutoMix: Der nächste Song wird nicht mehr in der Tonhöhe verschoben – „Tonart angleichen“ ist jetzt standardmäßig aus (es verstimmt den ganzen Song) und lässt sich in den Einstellungen wieder einschalten",

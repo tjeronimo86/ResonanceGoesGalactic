@@ -54,16 +54,15 @@ Future<void> showPlaylistSortSheet(BuildContext context, WidgetRef ref, Playlist
       await change();
       ref.invalidate(playlistDetailProvider(id));
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.playlistSorted),
-          action: SnackBarAction(
-            label: l10n.commonUndo,
-            onPressed: () async {
-              await api.setPlaylistOrder(id, before);
-              ref.invalidate(playlistDetailProvider(id));
-            },
-          ),
+      showMessage(
+        context,
+        l10n.playlistSorted,
+        action: SnackBarAction(
+          label: l10n.commonUndo,
+          onPressed: () async {
+            await api.setPlaylistOrder(id, before);
+            ref.invalidate(playlistDetailProvider(id));
+          },
         ),
       );
     } catch (e) {

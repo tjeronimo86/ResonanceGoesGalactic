@@ -134,6 +134,18 @@ class _Results extends ConsumerWidget {
               title: context.l10n.libraryPlaylists,
               children: [for (final p in r.playlists) PlaylistCard(playlist: p)],
             ),
+            if (r.lyrics.isNotEmpty) ...[
+              _Heading(context.l10n.searchInLyrics),
+              for (final (i, hit) in r.lyrics.indexed)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: LyricsHitRow(
+                    hit: hit,
+                    onPlay: () =>
+                        playMusic(context, ref, [for (final h in r.lyrics) h.track], index: i, contextId: 'search'),
+                  ),
+                ),
+            ],
             CatalogSearchSection(query: query),
           ],
         );
@@ -373,4 +385,30 @@ class _ArtistsTab extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// A song found by its lyrics: the song row with the line the query is in below it.
+class LyricsHitRow extends StatelessWidget {
+  const LyricsHitRow({super.key, required this.hit, required this.onPlay});
+  final LyricsHit hit;
+  final VoidCallback onPlay;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      TrackRow(track: hit.track, onPlay: onPlay),
+      if (hit.line.isNotEmpty)
+        Padding(
+          // Under the title, past the cover.
+          padding: const EdgeInsets.fromLTRB(64, 0, 16, 8),
+          child: Text(
+            context.l10n.searchLyricsLine(hit.line),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Palette.textMuted, fontStyle: FontStyle.italic, fontSize: 13),
+          ),
+        ),
+    ],
+  );
 }

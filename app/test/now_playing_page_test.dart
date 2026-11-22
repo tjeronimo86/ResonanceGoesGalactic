@@ -26,9 +26,11 @@ import 'package:resonance/ui/tv/tv_focusable.dart';
 import 'package:resonance/ui/widgets/catalog.dart';
 import 'package:resonance/ui/widgets/common.dart';
 import 'package:resonance/ui/widgets/reflection.dart';
+import 'package:resonance/ui/widgets/track_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/idle_connect.dart';
+
 import 'package:resonance/core/review.dart';
 import 'package:resonance/ui/widgets/credits_sheet.dart';
 
@@ -92,6 +94,7 @@ class _Player extends PlayerController {
   _Player(this.initial) : super(engine: _Engine());
   final PlayerView initial;
   final jumps = <int>[];
+  final moves = <(int, int)>[];
 
   @override
   PlayerView build() {
@@ -109,6 +112,14 @@ class _Player extends PlayerController {
   Future<void> jumpTo(int index) async {
     jumps.add(index);
     state = PlayerView(queue: state.queue, index: index);
+  }
+
+  @override
+  Future<void> move(int from, int to) async {
+    moves.add((from, to));
+    final queue = [...state.queue];
+    queue.insert(to, queue.removeAt(from));
+    state = PlayerView(queue: queue, index: state.index);
   }
 }
 
@@ -393,14 +404,11 @@ void main() {
       await tester.pump();
       expect(container.read(visualizerPeaksProvider), !peaks);
       if (peaks) {
-        expect(find.text('Punkte aus'), findsOneWidget);
         expect(container.read(prefsProvider).getBool('visualizer_peaks'), isFalse);
-        ScaffoldMessenger.of(tester.element(cover)).removeCurrentSnackBar();
-        await tester.pump();
         await tester.tap(cover);
         await tester.pump();
         expect(container.read(visualizerPeaksProvider), isTrue);
-        expect(find.text('Punkte an'), findsOneWidget);
+        expect(find.byType(SnackBar), findsNothing, reason: 'the dots themselves show the change');
       }
       await tester.pumpWidget(const SizedBox.shrink());
     });
@@ -542,7 +550,6 @@ void main() {
     await tester.tap(flowArtwork(1));
     await tester.pump();
     expect(container.read(visualizerPeaksProvider), isFalse);
-    expect(find.text('Peak dots off'), findsOneWidget);
   });
 
   testWidgets('a tapped coverflow cover turns over to its album and plays a song from there', (tester) async {
@@ -951,6 +958,45 @@ void main() {
     await tester.pump();
     expect(container.read(tvAmbientModeProvider), isFalse);
     expect(container.read(prefsProvider).getBool('tv.ambient_mode'), isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the queue reorders upcoming songs by dragging their handle', (tester) async {
+    const songs = [
+      ..._tracks,
+      Track(
+        id: 'four',
+        title: 'Fourth song',
+        duration: 120,
+        artist: NamedRef('artist', 'Artist'),
+        artistCredit: 'Artist',
+        album: NamedRef('four', 'Fourth album'),
+      ),
+    ];
+    final container = await mount(
+      tester,
+      view: const PlayerView(queue: songs, index: 0),
+      child: const QueuePage(),
+    );
+    final player = container.read(playerProvider.notifier) as _Player;
+    expect(find.byIcon(Icons.drag_handle), findsNWidgets(3), reason: 'only upcoming songs, not the playing one');
+    double top(String title) => tester.getTopLeft(find.text(title)).dy;
+    expect(top('Second song') < top('Third song') && top('Third song') < top('Fourth song'), isTrue);
+
+    final handle = find.descendant(
+      of: find.ancestor(of: find.text('Fourth song'), matching: find.byType(TrackRow)),
+      matching: find.byIcon(Icons.drag_handle),
+    );
+    final gesture = await tester.startGesture(tester.getCenter(handle));
+    await tester.pump(const Duration(milliseconds: 50));
+    for (var i = 0; i < 10; i++) {
+      await gesture.moveBy(Offset(0, (top('Second song') - top('Fourth song') - 80) / 10));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(player.moves, [(3, 1)]);
+    expect(top('Fourth song') < top('Second song'), isTrue);
     expect(tester.takeException(), isNull);
   });
 }

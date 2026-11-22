@@ -150,6 +150,9 @@ class _Engine implements PlaybackEngine {
   }
 
   @override
+  Future<void> move(int from, int to) async => audioSources.insert(to, audioSources.removeAt(from));
+
+  @override
   Future<void> play() async {
     playing = true;
     states.add(PlayerState(true, processingState));
@@ -375,6 +378,37 @@ void main() {
     engine.indices.add(4);
     await settle();
     expect(view().queuedCount, 0);
+  });
+
+  test('dragging an upcoming song moves it, and in or out of the songs the user queued', () async {
+    final context = List.generate(5, (i) => track('$i'));
+    await player.playTracks(context, context: 'album:first');
+    await player.addToQueue(track('q1'));
+    await player.addToQueue(track('q2'));
+    final sources = [...engine.audioSources];
+    String ids() => view().queue.map((t) => t.id).join(' ');
+
+    await player.move(5, 3);
+    expect(ids(), '0 q1 q2 3 1 2 4');
+    expect(engine.audioSources, [sources[0], sources[1], sources[2], sources[5], sources[3], sources[4], sources[6]]);
+    expect((view().queuedFrom, view().queuedCount), (1, 2));
+    // Dropped between the queued songs: queued too.
+    await player.move(6, 2);
+    expect(ids(), '0 q1 4 q2 3 1 2');
+    expect((view().queuedFrom, view().queuedCount), (1, 3));
+    // Dragged behind them: part of the rest again.
+    await player.move(1, 5);
+    expect(ids(), '0 4 q2 3 1 q1 2');
+    expect((view().queuedFrom, view().queuedCount), (1, 2));
+    expect([for (var i = 0; i < 7; i++) view().isQueued(i)], [false, true, true, false, false, false, false]);
+    // The playing song and songs before it stay where they are.
+    await player.move(0, 3);
+    await player.move(3, 0);
+    expect(ids(), '0 4 q2 3 1 q1 2');
+    // Switching shuffle off again keeps the dragged order.
+    await player.setShuffle(true);
+    await player.setShuffle(false);
+    expect(ids().startsWith('0 4 q2'), isTrue);
   });
 
   test('queuedAfterIndex counts reached songs as played', () {

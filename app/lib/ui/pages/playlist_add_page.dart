@@ -98,7 +98,6 @@ class _PlaylistSuggestionsState extends ConsumerState<PlaylistSuggestions> {
     setState(() => _added.add(track.id));
     try {
       await ref.read(libraryActionsProvider).addToPlaylist(widget.playlistId, [track.id]);
-      if (mounted) showInfo(context, context.l10n.playlistAddedTo(track.title));
     } catch (e) {
       if (!mounted) return;
       setState(() => _added.remove(track.id));

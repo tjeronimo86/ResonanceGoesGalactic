@@ -684,6 +684,50 @@ class PlayerController extends Notifier<PlayerView> {
     await engine.removeAt(i);
   }
 
+  /// Moves an upcoming song to [to] (its index afterwards, also after the current song). Dropped among the songs the
+  /// user queued, it becomes one of them; dragged out of them, it is part of the rest of the queue.
+  Future<void> move(int from, int to) async {
+    if (jam != null || connect != null || state.book != null) return;
+    final index = state.index;
+    final length = state.queue.length;
+    if (index == null || from == to || from <= index || to <= index || from >= length || to >= length) return;
+    await engine.finishFade();
+    final track = state.queue[from];
+    final wasQueued = state.isQueued(from);
+    var queuedFrom = state.queuedFrom, queuedCount = state.queuedCount;
+    if (wasQueued) {
+      queuedCount--;
+    } else if (queuedCount > 0 && from < queuedFrom) {
+      queuedFrom--;
+    }
+    // Between queued songs it is queued; right before or after them it keeps what it was.
+    final inside = to > queuedFrom && to < queuedFrom + queuedCount;
+    final edge = to == queuedFrom || to == queuedFrom + queuedCount;
+    final queued = queuedCount > 0 ? inside || (edge && wasQueued) : wasQueued && to == queuedFrom;
+    if (queued) {
+      if (queuedCount == 0) queuedFrom = to;
+      queuedCount++;
+    } else if (queuedCount > 0 && to <= queuedFrom) {
+      queuedFrom++;
+    }
+    // Unshuffled, the queue is the order to return to; shuffled, the original order stays.
+    if (!state.shuffle && _unshuffled.length == length) {
+      _unshuffled
+        ..removeAt(from)
+        ..insert(to, track);
+    }
+    state = _copy(
+      queue: List.unmodifiable(
+        [...state.queue]
+          ..removeAt(from)
+          ..insert(to, track),
+      ),
+      queuedFrom: queuedFrom,
+      queuedCount: queuedCount,
+    );
+    await engine.move(from, to);
+  }
+
   void togglePlay() => (jam?.playing ?? (connect != null ? state.playing : engine.playing)) ? pause() : play();
 
   Future<void> play() => jam != null

@@ -69,6 +69,5 @@ void main() {
     expect(entry, contains('StartupWMClass=de.knode.resonance'));
     expect(entry, contains('Icon=/i/r.png'));
     expect(entry, isNot(contains('NoDisplay')));
-    expect(appImageDesktopEntry('/a', '/i', hidden: true), endsWith('NoDisplay=true\n'));
   });
 }

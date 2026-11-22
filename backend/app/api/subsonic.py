@@ -24,8 +24,8 @@ from app.models import (
     User,
 )
 from app.schemas import AddTracksIn, PlayEventIn, PlaylistIn, PlaylistPatch
+from app.services import search, transcode
 from app.services import subsonic as ss
-from app.services import transcode
 from app.services.lyrics import get_lyrics
 from app.services.views import album_options, track_options
 
@@ -163,18 +163,9 @@ async def _search(db: DB, user: User, params: ss.Params, legacy: bool) -> dict[s
     query = params.get("query").strip()
     if query == '""':
         query = ""
-    artist_query, album_query, track_query = library.search_queries(query)
-    artists = list(
-        await db.scalars(
-            artist_query.offset(params.integer("artistOffset", 0)).limit(params.integer("artistCount", 20))
-        )
-    )
-    albums = list(
-        await db.scalars(album_query.offset(params.integer("albumOffset", 0)).limit(params.integer("albumCount", 20)))
-    )
-    tracks = list(
-        await db.scalars(track_query.offset(params.integer("songOffset", 0)).limit(params.integer("songCount", 20)))
-    )
+    artists = await search.artists(db, query, params.integer("artistCount", 20), params.integer("artistOffset", 0))
+    albums = await search.albums(db, query, params.integer("albumCount", 20), params.integer("albumOffset", 0))
+    tracks = await search.tracks(db, query, params.integer("songCount", 20), params.integer("songOffset", 0))
     album_rows = await ss.albums(db, user, albums)
     return {
         "searchResult2" if legacy else "searchResult3": {

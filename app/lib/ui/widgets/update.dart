@@ -174,12 +174,11 @@ class _UpdateNotifierState extends ConsumerState<UpdateNotifier> {
       final update = next.value;
       if (_shown || update == null || !update.available) return;
       _shown = true;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          duration: const Duration(seconds: 10),
-          content: Text(context.l10n.updateAvailableTitle((update.availableName).toString())),
-          action: SnackBarAction(label: context.l10n.updateInstall, onPressed: () => installAppUpdate(context, ref)),
-        ),
+      showMessage(
+        context,
+        context.l10n.updateAvailableTitle((update.availableName).toString()),
+        duration: const Duration(seconds: 10),
+        action: SnackBarAction(label: context.l10n.updateInstall, onPressed: () => installAppUpdate(context, ref)),
       );
     });
     return widget.child;

@@ -105,7 +105,8 @@ class ResonanceAudioHandler extends BaseAudioHandler with QueueHandler, SeekHand
     displaySubtitle: track.artistCredit,
     album: track.album.name,
     duration: track.length,
-    artUri: track.album.id.isEmpty ? null : _cover(track.album.id),
+    // The queue's artwork is reloaded on every queue change; a missing cover would be requested (404) each time.
+    artUri: track.album.id.isEmpty || albumsWithoutCover.contains(track.album.id) ? null : _cover(track.album.id),
   );
 
   MediaItem _stationItem(Station station, [StationNowPlaying? now]) {

@@ -79,13 +79,14 @@ async def test_installs_once_then_analyzes_the_most_played_first(env, monkeypatc
     async with SessionLocal() as db:
         rows = {row.track_id: row for row in await db.scalars(select(TrackVocals))}
     assert rows[missing_id].failed and rows[missing_id].vocals_in is None
+    assert rows[missing_id].error == "CalledProcessError" and rows[track_id].error is None
     assert (rows[track_id].vocals_in, rows[track_id].vocals_out) == (4.5, 34)
     # Done: no second install, nothing left to analyze.
     commands.clear()
     assert await vocals.run_once() == 0 and commands == []
 
     status = (await client.get("/api/mixpoints/status", headers=headers)).json()["vocals"]
-    assert status == {"state": "ready", "message": None, "enabled": True, "total": 2, "analyzed": 2}
+    assert status == {"state": "ready", "message": None, "enabled": True, "total": 2, "analyzed": 1, "failed": 1}
 
     # The heard voice replaces the lyrics; a changed file falls back to them until it is analyzed again.
     async def analyze(path):
@@ -103,6 +104,33 @@ async def test_installs_once_then_analyzes_the_most_played_first(env, monkeypatc
     points = (await client.get("/api/mixpoints", params={"ids": str(track_id)}, headers=headers)).json()
     assert (points[str(track_id)]["vocals_in"], points[str(track_id)]["vocals_out"]) == (10, 36)
     assert await vocals.run_once() == 1 and worker.paths[-1] == "beat.wav"
+
+
+async def test_a_stopped_worker_does_not_fail_the_song(env, monkeypatch, runtime):  # noqa: F811
+    _, _, track_id, missing_id = env
+    (runtime / "venv" / "bin").mkdir(parents=True)
+    (runtime / "venv" / "bin" / "python").touch()
+    (runtime / f"installed-{vocals._RUNTIME}").touch()
+    monkeypatch.setattr(vocals, "_crashes", {})
+    calls: list[str] = []
+
+    class StoppingWorker(FakeWorker):
+        async def analyze(self, path: Path, duration: float) -> tuple[float, float]:
+            calls.append(path.name)
+            raise RuntimeError("Song analysis stopped")
+
+    monkeypatch.setattr(vocals, "_worker", StoppingWorker())
+    async with SessionLocal() as db:
+        (await db.get(Track, missing_id)).duration = 30
+        await db.commit()
+    await enable()
+    # Each run stops at the first song and stores nothing, until the same song stopped the worker three times.
+    assert [await vocals.run_once() for _ in range(3)] == [0, 0, 1]
+    assert len(set(calls[:3])) == 1
+    async with SessionLocal() as db:
+        rows = list(await db.scalars(select(TrackVocals)))
+    assert len(rows) == 1 and rows[0].failed and rows[0].error == "RuntimeError: Song analysis stopped"
+    assert rows[0].track_id in (track_id, missing_id)
 
 
 async def test_a_failed_install_waits_an_hour(env, monkeypatch, runtime):  # noqa: F811
@@ -135,7 +163,7 @@ async def test_worker_protocol_keeps_one_process(tmp_path, monkeypatch, runtime)
         "    elif r['path'].endswith('crash'):\n"
         "        sys.exit(1)\n"
         "    else:\n"
-        "        print(json.dumps({'vocals_in': 1.5, 'vocals_out': r['duration'] - 2, 'nice': os.nice(0)}), flush=True)\n"
+        "        print(json.dumps({'vocals_in': 1.5, 'vocals_out': r['duration'] - 2, 'nice': os.nice(0), 'threads': r['threads']}), flush=True)\n"
     )
     monkeypatch.setattr(vocals, "_python", lambda: Path(sys.executable))
     monkeypatch.setattr(vocals, "_WORKER", script)
@@ -151,7 +179,9 @@ async def test_worker_protocol_keeps_one_process(tmp_path, monkeypatch, runtime)
             await worker.analyze(Path("/music/crash"), 50)
         assert worker._process is None
         assert await worker.analyze(Path("/music/c"), 10) == (1.5, 8)
-        assert (await worker._request({"path": "/music/d", "duration": 5}))["nice"] == 19
+        monkeypatch.setattr(vocals, "threads", lambda: 1)
+        answer = await worker._request({"path": "/music/d", "duration": 5})
+        assert answer["nice"] == 19 and answer["threads"] == 1
     finally:
         await worker.close()
 
@@ -230,3 +260,24 @@ async def test_failed_stem_is_reported_and_not_retried_at_once(env, monkeypatch,
     result = (await client.post(url, headers=headers)).json()
     assert result["state"] == "failed" and "ffmpeg" in result["error"]
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize(
+    ("utc", "quiet"),
+    [
+        # Winter: Germany is UTC+1.
+        ("2026-11-18T16:59:00", False),
+        ("2026-11-18T17:00:00", True),
+        ("2026-11-18T23:30:00", True),
+        ("2026-11-19T01:59:00", True),
+        ("2026-11-19T02:00:00", False),
+        ("2026-11-19T10:00:00", False),
+        # Summer: UTC+2.
+        ("2026-07-01T16:00:00", True),
+        ("2026-07-01T01:00:00", False),
+    ],
+)
+def test_one_thread_from_six_in_the_evening_to_three_at_night(utc, quiet, monkeypatch):
+    monkeypatch.setattr(vocals.os, "cpu_count", lambda: 8)
+    now = datetime.fromisoformat(utc).replace(tzinfo=UTC)
+    assert vocals.threads(now) == (1 if quiet else 4)

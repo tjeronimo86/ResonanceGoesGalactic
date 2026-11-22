@@ -7,6 +7,11 @@ class TvBackIntent extends Intent {
   const TvBackIntent();
 }
 
+/// Jumps between the page and the now-playing bar, however far down the page the bar is.
+class TvNowPlayingBarIntent extends Intent {
+  const TvNowPlayingBarIntent();
+}
+
 class TvDirectionIntent extends Intent {
   const TvDirectionIntent(this.direction);
   final TraversalDirection direction;

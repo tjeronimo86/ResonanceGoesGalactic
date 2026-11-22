@@ -57,6 +57,9 @@
   "navSettings": "Einstellungen",
   "searchHint": "Was möchtest du hören?",
   "searchNoLibraryResults": "Keine Treffer für „{query}“ in deiner Bibliothek.",
+  "searchInLyrics": "In Songtexten",
+  "searchLyricsLine": "„{line}“",
+  "@searchLyricsLine": {"placeholders": {"line": {"type": "String"}}},
   "tvKeyboardSpace": "Leerzeichen",
   "tvKeyboardDelete": "Löschen",
   "tvKeyboardClear": "Leeren",
@@ -143,10 +146,9 @@
   "playerNowPlaying": "Läuft gerade",
   "playerNextUp": "Als Nächstes",
   "playerRemoveFromQueue": "Aus Warteschlange entfernen",
+  "playerMoveInQueue": "Verschieben",
   "playerNextInQueue": "Als Nächstes in der Warteschlange",
   "playerLater": "Danach",
-  "playerRemovedTrack": "„{title}“ aus der Warteschlange entfernt",
-  "@playerRemovedTrack": {"placeholders": {"title": {"type": "String"}}},
   "settingsAccount": "Konto",
   "settingsAdministratorSuffix": " • Administrator",
   "settingsDisplayName": "Anzeigename",
@@ -542,19 +544,9 @@
   "playerAddLiked": "Zu Lieblingssongs hinzufügen",
   "playerPlayNext": "Als Nächstes spielen",
   "playerAddToQueue": "Zur Warteschlange hinzufügen",
-  "playerQueuedTrack": "„{title}“ in der Warteschlange",
-  "@playerQueuedTrack": {"placeholders": {"title": {"type": "String"}}},
   "playerGoToAlbum": "Zum Album",
   "playerGoToArtist": "Zum Künstler",
   "editorCorrectMetadata": "Metadaten korrigieren",
-  "libraryAddedToPlaylist": "Zu „{name}“ hinzugefügt",
-  "@libraryAddedToPlaylist": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "commonSave": "Speichern",
   "playerSkipBack": "30 Sekunden zurück",
   "playerSkipForward": "30 Sekunden vor",
@@ -1387,8 +1379,6 @@
   "settingsVisualizerStyle": "Visualizer-Stil",
   "settingsVisualizerReflection": "Spiegelung",
   "settingsVisualizerReflectionHint": "Cover und Visualizer spiegeln",
-  "visualizerPeaksOn": "Punkte an",
-  "visualizerPeaksOff": "Punkte aus",
   "settingsCoverflow": "Coverflow",
   "settingsCoverflowHint": "Cover der Warteschlange zum Wischen nebeneinander",
   "settingsCoverflowFlip": "Cover umdrehen",
@@ -1924,7 +1914,6 @@
   "playlistSearchNothing": "Nichts gefunden für „{query}“",
   "playlistAddSong": "Zur Playlist hinzufügen",
   "playlistAdded": "Hinzugefügt",
-  "playlistAddedTo": "„{title}“ hinzugefügt",
   "transitionCustom": "Benutzerdefiniert",
   "transitionNone": "Keine",
   "transitionFilterLane": "Filter",

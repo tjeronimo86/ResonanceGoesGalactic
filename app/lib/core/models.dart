@@ -350,20 +350,32 @@ class Home {
   );
 }
 
+/// A song whose lyrics contain the search query, with the line it is in.
+class LyricsHit {
+  const LyricsHit(this.track, this.line);
+  final Track track;
+  final String line;
+
+  factory LyricsHit.fromJson(Map<String, dynamic> j) =>
+      LyricsHit(Track.fromJson(j['track'] as Map<String, dynamic>), j['line'] as String? ?? '');
+}
+
 class SearchResult {
-  const SearchResult(this.artists, this.albums, this.tracks, [this.playlists = const []]);
+  const SearchResult(this.artists, this.albums, this.tracks, [this.playlists = const [], this.lyrics = const []]);
   final List<Artist> artists;
   final List<Album> albums;
   final List<Track> tracks;
   final List<Playlist> playlists;
+  final List<LyricsHit> lyrics;
 
-  bool get isEmpty => artists.isEmpty && albums.isEmpty && tracks.isEmpty && playlists.isEmpty;
+  bool get isEmpty => artists.isEmpty && albums.isEmpty && tracks.isEmpty && playlists.isEmpty && lyrics.isEmpty;
 
   factory SearchResult.fromJson(Map<String, dynamic> j) => SearchResult(
     [for (final a in j['artists']) Artist.fromJson(a)],
     [for (final a in j['albums']) Album.fromJson(a)],
     [for (final t in j['tracks']) Track.fromJson(t)],
     [for (final p in j['playlists'] ?? const []) Playlist.fromJson(p)],
+    [for (final l in j['lyrics'] ?? const []) LyricsHit.fromJson(l as Map<String, dynamic>)],
   );
 }
 
@@ -1207,8 +1219,17 @@ class Station {
 /// albums so cover images and downloaded covers can tell when they are out of date.
 final coverKeys = <String, String>{};
 
+/// Albums the server reported without a cover (`cover_key: null`): their cover URL only answers 404.
+final albumsWithoutCover = <String>{};
+
 Map<String, dynamic> noteCoverKey(Map<String, dynamic> album) {
   final key = album['cover_key'];
-  if (key is String) coverKeys[album['id'] as String] = key;
+  final id = album['id'] as String;
+  if (key is String) {
+    coverKeys[id] = key;
+    albumsWithoutCover.remove(id);
+  } else if (album.containsKey('cover_key')) {
+    albumsWithoutCover.add(id);
+  }
   return album;
 }

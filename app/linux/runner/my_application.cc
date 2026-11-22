@@ -1,6 +1,7 @@
 #include "my_application.h"
 
 #include <flutter_linux/flutter_linux.h>
+#include <unistd.h>
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
 #endif
@@ -19,11 +20,18 @@ static void first_frame_cb(MyApplication* self, FlView* view) {
   gtk_widget_show(gtk_widget_get_toplevel(GTK_WIDGET(view)));
 }
 
+// Closing the window ends the app right here, before the view is torn down. A normal shutdown segfaults: Flutter's
+// task runner can fire on freed tasks, and the NVIDIA EGL driver crashes in its exit handlers.
+static void window_destroyed_cb(GtkWidget* window, gpointer data) {
+  _exit(0);
+}
+
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
+  g_signal_connect(window, "destroy", G_CALLBACK(window_destroyed_cb), nullptr);
 
   // GTK header bar only under GNOME, where it is the native style. Everywhere else (KDE, tiling WMs; X11 and
   // Wayland) the desktop draws its own, slimmer title bar.

@@ -68,6 +68,21 @@ class _TvSearchResults extends ConsumerWidget {
           TvShelfData(context.l10n.libraryPlaylists, [
             for (final playlist in library.playlists) tvPlaylist(context, playlist),
           ]),
+          TvShelfData(context.l10n.searchInLyrics, [
+            for (final (index, hit) in library.lyrics.indexed)
+              TvCardData(
+                title: hit.track.title,
+                subtitle: context.l10n.searchLyricsLine(hit.line),
+                image: CoverImage(albumId: hit.track.album.id),
+                onActivate: () => playMusic(
+                  context,
+                  ref,
+                  [for (final h in library.lyrics) h.track],
+                  index: index,
+                  contextId: 'search',
+                ),
+              ),
+          ]),
           if (canRequestDownloads && catalog != null)
             TvShelfData(context.l10n.tvSearchAvailableAlbums, [
               for (final album in catalog.albums)
